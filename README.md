@@ -19,9 +19,16 @@ The simplest way to build and run this program -- and what I would recommend to 
 cd ~/Downloads
 git clone --recursive https://github.com/nfagan/grove-public
 ```
-* [Download and install](https://code.visualstudio.com) Visual Studio Code if you do not already have it.
 * [Download and install](https://sdk.lunarg.com/sdk/download/1.3.236.0/mac/vulkansdk-macos-1.3.236.0.dmg) the Vulkan SDK. **Important note**: This link points to the specific SDK version (1.3.236.0) I have validated with my M1-based machine. Newer SDK versions might work, but have not been tested. When selecting components to install, the defaults are fine (you can just click continue through the installer).
-* Open Visual Studio Code and, from the menu bar, select File -> Open Folder. Navigate to your Downloads folder, locate the folder `grove-public` and click Open.
-* If not already installed, Visual Studio Code will ask if you would like to install a recommended extension for C/C++ development from Microsoft. Press OK to install this extension.
-* Once installed, you will be prompted to select a "kit". This is the compiler that will be used to build the program. You may have multiple on your system; select one that begins with "clang".
-* 
+* [Download and install](https://cmake.org/download/) cmake. If given the option to add cmake to the path, click OK to enable this.
+* Run the following in a terminal window to build the program:
+```bash
+cd ~/Downloads/grove-public && mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 ..
+cmake --build . --target vk_app --config Release -- -j 6
+```
+* Run the following in a terminal window to run the program:
+```bash
+cd ~/Downloads/grove-public/build/src/vk-app
+./vk_app -nt 1
+```

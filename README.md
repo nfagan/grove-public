@@ -10,7 +10,7 @@ This document is intended as a resource for people looking to build and run the 
 
 ## prerequesites
 
-* `git` and Apple's developer tools
+* git and Apple's developer tools
     * Press command and space to open spotlight search; search for `terminal.app` and press enter to open a terminal window. Type `git --version` and press enter. This checks to see if git is installed. If it is, a version string will be printed (e.g. git version 2.32.0). Otherwise, you will be prompted to install Apples' developer tools; click accept/ok to install these tools.
 * Vulkan SDK 
     * [Download and install](https://sdk.lunarg.com/sdk/download/1.3.236.0/mac/vulkansdk-macos-1.3.236.0.dmg). **Important note**: This link points to the specific SDK version (1.3.236.0) I have validated with my M1-based machine. Newer SDK versions might work, but have not been tested. When selecting components to install, the defaults are fine (you can just click continue through the installer).
@@ -39,14 +39,14 @@ cd ~/Downloads/grove-public
 
 # build for windows
 
-**grove has only been tested on PCs with discrete GPUs from NVIDIA and AMD** If you have a machine with Intel integrated graphics and would consider attempting the following steps, I would be grateful to hear your experience. I am reachable here (you can file an issue) or via email: fagan dot nicholas at gmail.
+**grove has only been tested on PCs with discrete GPUs from NVIDIA and AMD**. If you have a machine with Intel integrated graphics and would consider attempting the following steps, I would be grateful to hear your experience. I am reachable here (you can file an issue) or via email: fagan dot nicholas at gmail.
 
 ## prerequesites
 
 * Microsoft Visual Studio
     * [Download and install](https://visualstudio.microsoft.com/). The community edition is free.
-* `git`
-    * [Download and install](https://git-scm.com/download/win)
+* git
+    * [Download and install](https://git-scm.com/download/win). Note that this is not just git, but a terminal emulator used to build and run the program.
 * Vulkan SDK
     * [Download and install](https://sdk.lunarg.com/sdk/download/1.3.243.0/windows/VulkanRT-1.3.243.0-Installer.exe). **Important note**: This link points to the specific SDK version (1.3.243.0) I have validated with my machine. Newer SDK versions might work, but have not been tested. When selecting components to install, the defaults are fine (you can just click continue through the installer).
 * cmake

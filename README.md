@@ -6,7 +6,7 @@ This document is intended as a resource for people looking to build and run the 
 
 # build for macos
 
-**grove has only been tested on and only officially supports Apple-silicon (e.g. M1) based Macs.** If you have an Intel-based Mac and would consider attempting the following steps, I would be grateful to hear your experience. I am reachable here (you can file an issue) or via email: fagan dot nicholas at gmail.
+**grove has only been tested on Apple-silicon (e.g. M1) based Macs.** If you have an Intel-based Mac and would consider attempting the following steps, I would be grateful to hear your experience. I am reachable here (you can file an issue) or via email: fagan dot nicholas at gmail.
 
 ## prerequesites
 
@@ -19,7 +19,7 @@ This document is intended as a resource for people looking to build and run the 
 
 ## build
 
-1. Open a new terminal window (command + space, search for terminal). Press command + t to open a new terminal tab, in case you were using the same terminal window from above. The following commands can be copied and pasted into this window.
+1. Open a new terminal window. The following commands can be copied and pasted into this window.
 2. Clone (download) this repository using git:
 ```bash
 cd ~/Downloads
@@ -39,3 +39,35 @@ cd ~/Downloads/grove-public
 
 # build for windows
 
+**grove has only been tested on PCs with discrete GPUs from NVIDIA and AMD** If you have a machine with Intel integrated graphics and would consider attempting the following steps, I would be grateful to hear your experience. I am reachable here (you can file an issue) or via email: fagan dot nicholas at gmail.
+
+## prerequesites
+
+* Microsoft Visual Studio
+    * [Download and install](https://visualstudio.microsoft.com/). The community edition is free.
+* `git`
+    * [Download and install](https://git-scm.com/download/win)
+* Vulkan SDK
+    * [Download and install](https://sdk.lunarg.com/sdk/download/1.3.243.0/windows/VulkanRT-1.3.243.0-Installer.exe). **Important note**: This link points to the specific SDK version (1.3.243.0) I have validated with my machine. Newer SDK versions might work, but have not been tested. When selecting components to install, the defaults are fine (you can just click continue through the installer).
+* cmake
+    * [Download and install](https://cmake.org/download/). If given the option to add cmake to the path, click OK to enable this.
+
+## build
+
+1. Search the start menu for `git bash` and open a new terminal window. The following commands can be copied and pasted into this window.
+2. Clone (download) this repository using git:
+```bash
+cd ~/Downloads
+git clone --recursive https://github.com/nfagan/grove-public
+```
+3. Run the following to build the program:
+```bash
+cd ~/Downloads/grove-public && mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build . --target vk_app --config Release -- -j 8
+```
+4. Run the following to run the program:
+```bash
+cd ~/Downloads/grove-public
+./build/src/vk-app/vk_app -nt 1 -rd ./assets
+```

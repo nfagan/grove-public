@@ -8,9 +8,11 @@ This document is intended as a resource for people looking to build and run the 
 
 The simplest way to build and run this program -- and what I would recommend to most people -- follows. A more complete and technical build-guide is also available [here](todo).
 
-## macos
+## build for macos
 
-* Press command + space to open spotlight search; search for `terminal.app` and press enter to open a terminal window.
-* Type `git --version` and enter. This checks to see if git is installed. If it is, a version string will be printed (e.g. git version 2.32.0). Otherwise, you will be prompted to install developer tools from Apple; click accept/ok to install these tools.
+* Press command and space to open spotlight search; search for `terminal.app` and press enter to open a terminal window.
+* Type `git --version` and press enter. This checks to see if git is installed. If it is, a version string will be printed (e.g. git version 2.32.0). Otherwise, you will be prompted to install developer tools from Apple; click accept/ok to install these tools.
 * [Download and install](https://code.visualstudio.com) Visual Studio Code if you do not already have it.
+* Near the top of this page, click the green button labeled `<> Code` and select Download ZIP. This will download the repository, usually to your Downloads folder. Unzip this file by double-clicking it.
+* [Download and install](https://sdk.lunarg.com/sdk/download/1.3.236.0/mac/vulkansdk-macos-1.3.236.0.dmg) the Vulkan SDK. **Important note**: This link points to the specific SDK version (1.3.236.0) I have validated with my development system. Newer SDK versions might work, but have not been tested.
 * 

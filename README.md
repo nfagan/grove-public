@@ -30,10 +30,10 @@ git clone --recursive https://github.com/nfagan/grove-public
 ```bash
 cd ~/Downloads/grove-public && mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 ..
-cmake --build . --target vk_app --config Release -- -j 6
+cmake --build . --target vk_app --config Release -- -j 8
 ```
 * Run the following to run the program:
 ```bash
-cd ~/Downloads/grove-public/build/src/vk-app
-./vk_app -nt 1
+cd ~/Downloads/grove-public
+./build/src/vk-app/vk_app -nt 1 -rd ./assets
 ```

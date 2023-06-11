@@ -6,6 +6,8 @@ This is the public repository for grove, a sandbox video game about sound, the e
 
 This document is intended as a resource for people looking to build and run the program from source, and / or for developers interested in modifying or extending the program. For a non-technical introduction to this work, see the accompanying website: [https://grove.ooo](https://grove.ooo).
 
+I am currently still cleaning up the source code for public release; however, a pre-built binary and asset bundle for Windows is available [here](https://github.com/nfagan/grove-public/tree/main/releases) to demo (under releases).
+
 # build for macos
 
 **grove has only been tested on Apple-silicon (e.g. M1) based Macs.** If you have an Intel-based Mac and would consider attempting the following steps, I would be grateful to hear your experience. I am reachable here (you can file an issue) or via email: fagan dot nicholas at gmail.

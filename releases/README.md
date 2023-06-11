@@ -1,0 +1,5 @@
+This folder contains a pre-built binary and asset bundle for Windows.
+
+1. Download `grove-windows.zip` and unzip it using Windows file explorer or any other tool.
+2. Navigate to the grove-distrib folder within the folder you just unzipped. There is another archive called `assets.zip`; unzip this as well. *Important*: the unzipped `assets` folder needs to exist alongside the `shaders` folder and `grove.bat`, etc. files in the `grove-distrib` folder (this should happen automatically if you use Windows file explorer to unzip the archive).
+3. Double-click `grove.bat` to run the program. You will likely be presented with a prompt that indicates this software is potentially dangerous to run; if so, you will have to click a button labeled 'more info', and then another button to run the program anyway.

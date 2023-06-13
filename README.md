@@ -63,4 +63,9 @@ git clone --recursive https://github.com/nfagan/grove-public
 ```
 2. Launch Visual Studio and select "open a local folder". Navigate to your Downloads folder, and select the grove-public folder within.
 3. In the top menu bar, click the little dropdown arrow next to "Select startup item," and select vk_app.exe. Then, to the left of this, click the button labeled x64-Debug and change it to x64-Release.
-4. Click the play button to build and run the program.
+4. Press ctrl + b on the keyboard to build the program (or, in the top-most menu bar, click Build -> Build vk_app.exe).
+5. In the terminal, run the following:
+```bash
+cd ~/Downloads/grove-public/ && ./install.sh
+```
+6. In Visual Studio, click the play button to run the program.

@@ -1,0 +1,44 @@
+#version 450
+
+#pragma include "branch-node-lod/lod-types.glsl"
+
+struct DrawIndexedIndirectCommand {
+  uint index_count;
+  uint instance_count;
+  uint first_index;
+  int vertex_offset;
+  uint first_instance;
+};
+
+layout (set = 0, binding = 0, std430) readonly buffer LODOutputs {
+  LODOutputData outputs[];
+};
+
+layout (set = 0, binding = 1, std430) buffer DrawCommand {
+  DrawIndexedIndirectCommand command;
+};
+
+layout (set = 0, binding = 2, std430) writeonly buffer DrawIndices {
+  uint indices[];
+};
+
+layout (local_size_x = LOCAL_SIZE_X, local_size_y = 1, local_size_z = 1) in;
+
+layout (push_constant) uniform PushConstants {
+  uvec4 num_instances_unused;
+};
+
+layout (local_size_x = LOCAL_SIZE_X, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+  uint inst_index = gl_GlobalInvocationID.x;
+  if (inst_index >= num_instances_unused.x) {
+    return;
+  }
+
+  LODOutputData lod_outputs = outputs[inst_index];
+  if (lod_outputs.lod_index == 1) {
+    uint push_to = atomicAdd(command.instance_count, 1u);
+    indices[push_to] = inst_index;
+  }
+}

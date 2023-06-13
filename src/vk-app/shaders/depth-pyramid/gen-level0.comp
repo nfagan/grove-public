@@ -1,0 +1,16 @@
+#version 450
+
+layout (set = 0, binding = 0) uniform sampler2D src;
+layout (r32f, set = 0, binding = 1) uniform image2D dst;
+
+layout (push_constant) uniform PushConstants {
+  vec4 dimensions;
+};
+
+layout (local_size_x = LOCAL_SIZE_X, local_size_y = LOCAL_SIZE_Y, local_size_z = 1) in;
+
+void main() {
+  ivec2 id = clamp(ivec2(gl_GlobalInvocationID.xy), ivec2(0), ivec2(dimensions.xy) - 1);
+  float v = texelFetch(src, id, 0).r;
+  imageStore(dst, id, vec4(v));
+}

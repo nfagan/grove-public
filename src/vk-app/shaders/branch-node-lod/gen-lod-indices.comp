@@ -1,0 +1,61 @@
+#version 450
+
+#define HIGH_LOD_INDEX (1)
+
+#pragma include "branch-node-lod/lod-types.glsl"
+#pragma include "cull/occlusion-cull-types.glsl"
+#pragma include "cull/frustum-cull-types.glsl"
+
+layout (set = 0, binding = 0, std430) readonly buffer LODData {
+  RenderBranchNodeLODData lod_datas[];
+};
+
+layout (set = 0, binding = 1, std430) readonly buffer CullGroupOffsets {
+  uint cull_group_offsets[];
+};
+
+#ifdef USE_FRUSTUM_CULL
+layout (set = 0, binding = 2, std430) readonly buffer CullData {
+  FrustumCullResult cull_results[];
+};
+#else
+layout (set = 0, binding = 2, std430) readonly buffer CullData {
+  OcclusionCullResult cull_results[];
+};
+#endif
+
+layout (set = 0, binding = 3, std430) writeonly buffer Outputs {
+  LODOutputData outputs[];
+};
+
+layout (push_constant) uniform PushConstants {
+  uvec4 num_instances_unused;
+};
+
+layout (local_size_x = LOCAL_SIZE_X, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+  uint inst_index = gl_GlobalInvocationID.x;
+  if (inst_index >= num_instances_unused.x) {
+    return;
+  }
+
+  RenderBranchNodeLODData lod_data = lod_datas[inst_index];
+  uint cull_group = lod_data.cull_group_and_instance & 0xffffu;
+  uint cull_inst = (lod_data.cull_group_and_instance >> 16u) & 0xffffu;
+
+  bool visible = lod_data.is_active == 1;
+  if (cull_group != 0) {
+#ifdef USE_FRUSTUM_CULL
+    FrustumCullResult cull_result = cull_results[cull_group_offsets[cull_group - 1] + cull_inst];
+    visible = visible && cull_result.result == 1;
+#else
+    OcclusionCullResult cull_result = cull_results[cull_group_offsets[cull_group - 1] + cull_inst];
+    visible = visible && cull_result.status == OCCLUSION_CULL_RESULT_VISIBLE;
+#endif
+  }
+
+  LODOutputData output_data;
+  output_data.lod_index = visible ? HIGH_LOD_INDEX : 0;
+  outputs[inst_index] = output_data;
+}

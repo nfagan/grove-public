@@ -1,0 +1,38 @@
+#version 450
+
+#define REVERSE_DEPTH (1)
+
+layout (r32f, set = 0, binding = 0) readonly uniform image2D src;
+layout (r32f, set = 0, binding = 1) writeonly uniform image2D dst;
+
+layout (push_constant) uniform PushConstants {
+  vec4 src_dst_dimensions;
+};
+
+layout (local_size_x = LOCAL_SIZE_X, local_size_y = LOCAL_SIZE_Y, local_size_z = 1) in;
+
+void main() {
+  vec2 src_dimensions = src_dst_dimensions.xy;
+  vec2 dst_dimensions = src_dst_dimensions.zw;
+
+  if (gl_GlobalInvocationID.x < uint(dst_dimensions.x) && gl_GlobalInvocationID.y < uint(dst_dimensions.y)) {
+    ivec2 src_id = ivec2(gl_GlobalInvocationID.xy) * 2;
+
+    ivec2 id00 = clamp(src_id, ivec2(0), ivec2(src_dimensions) - 1);
+    ivec2 id01 = clamp(src_id + ivec2(0, 1), ivec2(0), ivec2(src_dimensions) - 1);
+    ivec2 id10 = clamp(src_id + ivec2(1, 0), ivec2(0), ivec2(src_dimensions) - 1);
+    ivec2 id11 = clamp(src_id + ivec2(1, 1), ivec2(0), ivec2(src_dimensions) - 1);
+
+    float v0 = imageLoad(src, id00).r;
+    float v1 = imageLoad(src, id01).r;
+    float v2 = imageLoad(src, id10).r;
+    float v3 = imageLoad(src, id11).r;
+
+  #if REVERSE_DEPTH
+    float v = min(min(min(v0, v1), v2), v3);
+  #else
+    float v = max(max(max(v0, v1), v2), v3);
+  #endif
+    imageStore(dst, ivec2(gl_GlobalInvocationID.xy), vec4(v));
+  }
+}

@@ -1,0 +1,18 @@
+#pragma once
+
+#include "audio_processor_nodes/ConstantNode.hpp"
+#include "audio_processor_nodes/DelayNode.hpp"
+#include "audio_processor_nodes/DestinationNode.hpp"
+#include "audio_processor_nodes/DuplicatorNode.hpp"
+#include "audio_processor_nodes/GainNode.hpp"
+#include "audio_processor_nodes/MergerNode.hpp"
+#include "audio_processor_nodes/ModulatedOscillatorNode.hpp"
+#include "audio_processor_nodes/OscillatorNode.hpp"
+#include "audio_processor_nodes/RealTimeMIDINode.hpp"
+#include "audio_processor_nodes/SplitterNode.hpp"
+#include "audio_processor_nodes/SumNode.hpp"
+#include "audio_processor_nodes/ADSRNode.hpp"
+#include "audio_processor_nodes/MultiplyNode.hpp"
+#include "audio_processor_nodes/RandomizedEnvelopeNode.hpp"
+#include "audio_processor_nodes/MIDIClipSourceNode.hpp"
+#include "audio_processor_nodes/MIDINoteToPitchCV.hpp"

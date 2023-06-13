@@ -1,0 +1,56 @@
+#version 450
+
+#ifndef LOCAL_SIZE_X
+#error "Expected LOCAL_SIZE_X define"
+#endif
+
+#pragma include "foliage-cull/foliage-cull-types.glsl"
+
+//  https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkDrawIndexedIndirectCommand.html
+struct DrawIndexedIndirectCommand {
+  uint index_count;
+  uint instance_count;
+  uint first_index;
+  int vertex_offset;
+  uint first_instance;
+};
+
+struct DrawInstanceIndex {
+  uint index;
+};
+
+layout (local_size_x = LOCAL_SIZE_X, local_size_y = 1, local_size_z = 1) in;
+
+layout (set = 0, binding = 0, std430) readonly buffer ComputedLODIndices {
+  ComputeLODIndex computed_lod_indices[];
+};
+
+layout (set = 0, binding = 1, std430) buffer Command {
+  DrawIndexedIndirectCommand draw_command;
+};
+
+layout (set = 0, binding = 2, std430) writeonly buffer DrawInstanceIndices {
+  DrawInstanceIndex draw_indices[];
+};
+
+layout (push_constant) uniform PushConstantData {
+  uvec4 num_instances_target_lod_index_unused;
+};
+
+void main() {
+  uint inst_index = gl_GlobalInvocationID.x;
+  uint num_instances = num_instances_target_lod_index_unused.x;
+  if (inst_index >= num_instances) {
+    return;
+  }
+
+  uint target_lod_index = num_instances_target_lod_index_unused.y;
+  ComputeLODIndex lod_index = computed_lod_indices[inst_index];
+
+  if (lod_index.index == target_lod_index) {
+    uint push_to = atomicAdd(draw_command.instance_count, 1u);
+    DrawInstanceIndex draw_index;
+    draw_index.index = inst_index;
+    draw_indices[push_to] = draw_index;
+  }
+}

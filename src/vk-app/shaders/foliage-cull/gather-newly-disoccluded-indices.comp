@@ -1,0 +1,85 @@
+#version 450
+
+//  https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkDrawIndexedIndirectCommand.html
+struct DrawIndexedIndirectCommand {
+  uint index_count;
+  uint instance_count;
+  uint first_index;
+  int vertex_offset;
+  uint first_instance;
+};
+
+#pragma include "foliage-cull/foliage-cull-types.glsl"
+
+layout (local_size_x = LOCAL_SIZE_X, local_size_y = 1, local_size_z = 1) in;
+
+#pragma include "cull/occlusion-cull-types.glsl"
+
+layout (set = 0, binding = 0, std430) readonly buffer OcclusionCullResults {
+  OcclusionCullResult occlusion_results[];
+};
+
+layout (set = 0, binding = 1, std430) readonly buffer ComputeLODIndices {
+  ComputeLODIndex lod_indices[];
+};
+
+layout (set = 0, binding = 2, std430) readonly buffer RenderInstanceComponentIndexSets {
+  RenderInstanceComponentIndices component_indices[];
+};
+
+layout (set = 0, binding = 3, std430) readonly buffer FrustumCullInstanceGroupOffsets {
+  uint frustum_cull_group_offsets[];
+};
+
+//  output
+layout (set = 0, binding = 4, std430) writeonly buffer LOD0DrawIndices {
+  uint lod0_draw_indices[];
+};
+
+layout (set = 0, binding = 5, std430) buffer LOD0DrawCommand {
+  DrawIndexedIndirectCommand lod0_draw_command;
+};
+
+layout (set = 0, binding = 6, std430) writeonly buffer LOD1DrawIndices {
+  uint lod1_draw_indices[];
+};
+
+layout (set = 0, binding = 7, std430) buffer LOD1DrawCommand {
+  DrawIndexedIndirectCommand lod1_draw_command;
+};
+
+layout (push_constant) uniform PushConstants {
+  uvec4 num_instances_unused;
+};
+
+void main() {
+  uint invoke_index = gl_GlobalInvocationID.x;
+  if (invoke_index >= num_instances_unused.x) {
+    return;
+  }
+
+  RenderInstanceComponentIndices component_inds = component_indices[invoke_index];
+  ComputeLODIndex lod_index = lod_indices[invoke_index];
+
+  uint frust_index = frustum_cull_group_offsets[component_inds.frustum_cull_group] + component_inds.frustum_cull_instance_index;
+  OcclusionCullResult cull_result = occlusion_results[frust_index];
+
+  if (lod_index.index < 3 || cull_result.status == OCCLUSION_CULL_RESULT_OCCLUDED) {
+    //  lod index == 0 means the instance was masked or faded out.
+    //  lod index == 1 || lod index == 2 implies the instance was previously visible and already
+    //  drawn during the forward pass.
+    return;
+  }
+
+  //  Otherwise, the instance wasn't drawn due to the previous frame's occlusion result.
+  //  In this case, the instance is no longer occluded, so it needs to be drawn.
+  if (lod_index.index == 3) {
+    uint push_to = atomicAdd(lod0_draw_command.instance_count, 1u);
+    lod0_draw_indices[push_to] = invoke_index;
+
+  } else if (lod_index.index == 4) {
+    uint push_to = atomicAdd(lod1_draw_command.instance_count, 1u);
+    lod1_draw_indices[push_to] = invoke_index;
+
+  } //  else { assert(false); }
+}

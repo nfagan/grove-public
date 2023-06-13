@@ -1,0 +1,223 @@
+#version 450
+
+#ifndef LOCAL_SIZE_X
+#error "Expected LOCAL_SIZE_X define"
+#endif
+
+#define HIGH_LOD_INDEX (1)
+#define LOW_LOD_INDEX (2)
+
+struct ComputeLODInstance {
+  vec4 translation_fadeout_allowed;
+  vec4 scale_distance_limits_lod_distance_limits;
+};
+
+struct LODDependentData {
+  vec4 scale_fraction_lod_fraction;
+};
+
+#pragma include "foliage-cull/foliage-cull-types.glsl"
+
+struct FrustumCullResult {
+  uint result;
+};
+
+#ifdef USE_CPU_OCCLUSION
+
+#ifndef MAX_NUM_INSTANCES_PER_CLUSTER
+#error "Expected MAX_NUM_INSTANCES_PER_CLUSTER define"
+#endif
+
+struct OcclusionClusterInstance {
+  vec4 position_right_xy;
+  vec4 right_z_normal_xyz_scale_xy;
+  uvec4 data0; //  culling (true / false)
+};
+
+struct OcclusionCluster {
+  vec4 aabb_p0;
+  vec4 aabb_p1;
+  vec4 canonical_position;
+  OcclusionClusterInstance instances[MAX_NUM_INSTANCES_PER_CLUSTER];
+};
+
+#endif
+
+layout (local_size_x = LOCAL_SIZE_X, local_size_y = 1, local_size_z = 1) in;
+
+//  in
+layout (set = 0, binding = 0, std430) readonly buffer ComputeLODInstances {
+  ComputeLODInstance compute_lod_instances[];
+};
+
+layout (set = 0, binding = 1, std430) readonly buffer RenderInstanceComponentIndexSets {
+  RenderInstanceComponentIndices component_indices[];
+};
+
+#ifdef USE_GPU_OCCLUSION
+
+#pragma include "cull/occlusion-cull-types.glsl"
+
+layout (set = 0, binding = 2, std430) readonly buffer OcclusionCullResults {
+  OcclusionCullResult gpu_occlusion_results[];
+};
+
+#else
+
+layout (set = 0, binding = 2, std430) readonly buffer FrustumCullResults {
+  FrustumCullResult frustum_cull_results[];
+};
+
+#endif
+
+layout (set = 0, binding = 3, std430) readonly buffer FrustumCullInstanceGroupOffsets {
+  uint frustum_cull_group_offsets[];
+};
+
+//  out
+layout (set = 0, binding = 4, std430) writeonly buffer ComputedLODIndices {
+  ComputeLODIndex computed_lod_indices[];
+};
+
+layout (set = 0, binding = 5, std430) writeonly buffer LODDependentDatas {
+  LODDependentData lod_dependent_data[];
+};
+
+#ifdef USE_CPU_OCCLUSION
+layout (set = 0, binding = 6, std430) readonly buffer OcclusionClusters {
+  OcclusionCluster occlusion_clusters[];
+};
+
+layout (set = 0, binding = 7, std430) readonly buffer OcclusionClusterGroupOffset {
+  uint occlusion_cluster_group_offsets[];
+};
+#endif
+
+layout (push_constant) uniform PushConstantData {
+  uvec4 num_instances_unused;
+  vec4 camera_position;
+};
+
+#ifdef USE_CPU_OCCLUSION
+
+uvec3 parse_cpu_occlusion_indices(in RenderInstanceComponentIndices indices) {
+  uint group = indices.occlusion_cull_group_cluster_instance_index & 0xffffu;
+  uint cluster_inst = (indices.occlusion_cull_group_cluster_instance_index >> 16u) & 0xffffu;
+  uint cluster = cluster_inst & 0xfffu;
+  uint instance = (cluster_inst >> 12u) & 0xfu;
+  return uvec3(group, cluster, instance);
+}
+
+float parse_scale_fraction(in OcclusionClusterInstance inst) {
+  //  @TODO: Codify states
+  uint state = inst.data0.x;
+  float transition_frac = uintBitsToFloat(inst.data0.w);
+  //  assert(transition_frac >= 0.0 && transition_frac <= 1.0);
+  if (state == 0) {                       //  idle
+    return 1.0;
+  } else if (state == 1) {                //  fading out
+    return 1.0 - transition_frac;
+  } else if (state == 2 || state == 3) {  //  faded out
+    return 0.0;
+  } else if (state == 4) {                //  fading in
+    return transition_frac;
+  } else {
+    //  assert(false);
+    return 1000.0;
+  }
+}
+
+float get_cpu_occlusion_scale_fraction(in RenderInstanceComponentIndices indices) {
+  uvec3 occlude_inds = parse_cpu_occlusion_indices(indices);
+  if (occlude_inds.x != 0) {
+    //  @NOTE: 1-based group index
+    uint occlude_cluster_offset = occlusion_cluster_group_offsets[occlude_inds.x - 1] + occlude_inds.y;
+    OcclusionClusterInstance occlude_inst = occlusion_clusters[occlude_cluster_offset].instances[occlude_inds.z];
+    return parse_scale_fraction(occlude_inst);
+  } else {
+    return 1.0;
+  }
+}
+
+#endif
+
+float clamped_distance01(float d, vec2 lims) {
+  float dist = clamp(d, lims.x, lims.y);
+  return clamp((dist - lims.x) / (lims.y - lims.x), 0.0, 1.0);
+}
+
+void main() {
+  uint inst_index = gl_GlobalInvocationID.x;
+  if (inst_index >= num_instances_unused.x) {
+    return;
+  }
+
+  ComputeLODInstance inst = compute_lod_instances[inst_index];
+  RenderInstanceComponentIndices component_inds = component_indices[inst_index];
+
+  if (component_inds.is_active == 0) {
+    ComputeLODIndex computed_index;
+    computed_index.index = 0;
+    computed_lod_indices[inst_index] = computed_index;
+    return;
+  }
+
+  uint frust_index = frustum_cull_group_offsets[component_inds.frustum_cull_group] + component_inds.frustum_cull_instance_index;
+
+#ifdef USE_GPU_OCCLUSION
+  //  Same instance index as frustum cull result.
+  bool is_visible = gpu_occlusion_results[frust_index].status == OCCLUSION_CULL_RESULT_VISIBLE;
+#else
+  uint frust_result = frustum_cull_results[frust_index].result;
+#endif
+
+  vec2 dist_lims = vec2(inst.scale_distance_limits_lod_distance_limits.x, inst.scale_distance_limits_lod_distance_limits.y);
+  vec2 lod_lims = vec2(inst.scale_distance_limits_lod_distance_limits.z, inst.scale_distance_limits_lod_distance_limits.w);
+
+  vec3 p = inst.translation_fadeout_allowed.xyz;
+  bool fadeout_allowed = inst.translation_fadeout_allowed.w == 1.0;
+
+  float camera_distance = length(p - camera_position.xyz);
+
+  float scale_dist_frac = clamped_distance01(camera_distance, dist_lims);
+  float scale_frac = 1.0 - scale_dist_frac;
+  //  incorporate fade out allowed
+  scale_frac = max(scale_frac, 1.0 - float(fadeout_allowed));
+#ifdef USE_CPU_OCCLUSION
+  scale_frac *= get_cpu_occlusion_scale_fraction(component_inds);
+#endif
+
+#ifdef DISABLE_HIGH_LOD
+  float lod_frac = 0.0;
+  uint lod = LOW_LOD_INDEX;
+#else
+  float lod_dist_frac = clamped_distance01(camera_distance, lod_lims);
+  float lod_frac = 1.0 - lod_dist_frac;
+
+  uint lod = camera_distance >= lod_lims.y ? LOW_LOD_INDEX : HIGH_LOD_INDEX;
+#endif
+  if (scale_frac < 1e-2) {
+    //  Unconditionally fade out.
+    lod = 0;
+  } else {
+#ifdef USE_GPU_OCCLUSION
+    //  If the instance is visible based on the previous frame's occlusion result, it should be
+    //  drawn in the main forward pass. Otherwise, it *might* have to be drawn later, if it is
+    //  found to have been disoccluded on this frame.
+    lod += is_visible ? 0 : 2;
+#else
+    //  Using frustum culling
+    lod *= frust_result;
+#endif
+  }
+
+  LODDependentData dependent_data;
+  dependent_data.scale_fraction_lod_fraction.x = scale_frac;
+  dependent_data.scale_fraction_lod_fraction.y = lod_frac;
+
+  ComputeLODIndex computed_index;
+  computed_index.index = lod;
+
+  lod_dependent_data[inst_index] = dependent_data;
+  computed_lod_indices[inst_index] = computed_index;
+}

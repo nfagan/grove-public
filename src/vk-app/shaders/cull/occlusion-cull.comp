@@ -1,0 +1,169 @@
+#version 450
+
+#define DISABLE_CULL (0)
+#define REVERSE_DEPTH (1)
+
+#ifndef OCCLUSION_CULL_RESULT_OCCLUDED
+#error "missing define"
+#endif
+
+#ifndef OCCLUSION_CULL_RESULT_VISIBLE
+#error "missing define"
+#endif
+
+layout (local_size_x = LOCAL_SIZE_X, local_size_y = 1, local_size_z = 1) in;
+
+struct AABB {
+  vec4 p0;
+  vec4 p1;
+};
+
+struct OcclusionCullResult {
+  uint status;
+};
+
+struct FrustumCullResult {
+  uint result;
+};
+
+layout (set = 0, binding = 0, std430) readonly buffer AABBs {
+  AABB aabbs[];
+};
+
+layout (set = 0, binding = 1, std430) readonly buffer FrustumCullResults {
+  FrustumCullResult frustum_cull_results[];
+};
+
+layout (set = 0, binding = 2, std430) writeonly buffer OcclusionCullResults {
+  OcclusionCullResult results[];
+};
+
+layout (set = 0, binding = 3) uniform sampler2D depth_pyramid_image;
+
+layout (push_constant) uniform PushConstants {
+  mat4 proj_view;
+  uvec4 num_instances_max_mip_unused;
+  vec4 disabled_root_dimensions;
+};
+
+struct CullInfo {
+  vec2 clip_aabb_p0;
+  vec2 clip_aabb_p1;
+  float check_z;
+  bool reject;
+};
+
+CullInfo do_cull(vec3 p0, vec3 p1) {
+  vec4 p000 = proj_view * vec4(p0, 1.0);
+  vec4 p001 = proj_view * vec4(p0.x, p0.y, p1.z, 1.0);
+  vec4 p010 = proj_view * vec4(p0.x, p1.y, p0.z, 1.0);
+  vec4 p110 = proj_view * vec4(p1.x, p1.y, p0.z, 1.0);
+  vec4 p011 = proj_view * vec4(p0.x, p1.y, p1.z, 1.0);
+  vec4 p100 = proj_view * vec4(p1.x, p0.y, p0.z, 1.0);
+  vec4 p101 = proj_view * vec4(p1.x, p0.y, p1.z, 1.0);
+  vec4 p111 = proj_view * vec4(p1, 1.0);
+
+  vec3 p0003 = p000.xyz / p000.w;
+  vec3 p0013 = p001.xyz / p001.w;
+  vec3 p0103 = p010.xyz / p010.w;
+  vec3 p1103 = p110.xyz / p110.w;
+  vec3 p0113 = p011.xyz / p011.w;
+  vec3 p1003 = p100.xyz / p100.w;
+  vec3 p1013 = p101.xyz / p101.w;
+  vec3 p1113 = p111.xyz / p111.w;
+
+  vec3 min_p3 = min(min(min(min(min(min(min(p0003, p0013), p0103), p1103), p0113), p1003), p1013), p1113);
+  vec3 max_p3 = max(max(max(max(max(max(max(p0003, p0013), p0103), p1103), p0113), p1003), p1013), p1113);
+
+#if REVERSE_DEPTH
+  float check_z = max_p3.z;
+#else
+  float check_z = min_p3.z;
+#endif
+
+  int reject = int(p000.w <= 0) | int(p001.w <= 0) | int(p010.w <= 0) | int(p110.w <= 0) |
+               int(p011.w <= 0) | int(p100.w <= 0) | int(p101.w <= 0) | int(p111.w <= 0);
+
+  vec2 min_p = max(vec2(-1.0), min_p3.xy);
+  vec2 max_p = min(vec2(1.0), max_p3.xy);
+
+  vec2 min_p01 = clamp(min_p * 0.5 + 0.5, vec2(0.0), vec2(1.0));
+  vec2 max_p01 = clamp(max_p * 0.5 + 0.5, vec2(0.0), vec2(1.0));
+
+  CullInfo result;
+  result.check_z = check_z;
+  result.clip_aabb_p0 = min_p01;
+  result.clip_aabb_p1 = max_p01;
+  result.reject = reject == 1;
+  return result;
+}
+
+int calc_mip_level(vec2 min_p01, vec2 max_p01, vec2 root_dimensions) {
+  float max_root_dim = max(root_dimensions.x, root_dimensions.y);
+  vec2 s = (max_p01 - min_p01) * root_dimensions;
+  float max_extent = max(1.0, min(max(s.x, s.y), max_root_dim));
+  int level = clamp(int(ceil(log2(max_extent))), 0, int(num_instances_max_mip_unused.y));
+  return level;
+}
+
+void main() {
+  uint invoke_index = gl_GlobalInvocationID.x;
+  if (invoke_index >= num_instances_max_mip_unused.x) {
+    return;
+  }
+
+#if DISABLE_CULL
+  results[invoke_index].status = OCCLUSION_CULL_RESULT_VISIBLE;
+
+#else
+  //  Made visible by disabling culling
+  if (disabled_root_dimensions.x > 0.0) {
+    results[invoke_index].status = OCCLUSION_CULL_RESULT_VISIBLE;
+    return;
+  }
+
+  //  Rejected due to frustum cull
+  if (frustum_cull_results[invoke_index].result == 0) {
+    results[invoke_index].status = OCCLUSION_CULL_RESULT_OCCLUDED;
+    return;
+  }
+
+  AABB aabb = aabbs[invoke_index];
+  CullInfo cull_info = do_cull(aabb.p0.xyz, aabb.p1.xyz);
+
+  if (cull_info.reject) {
+    results[invoke_index].status = OCCLUSION_CULL_RESULT_VISIBLE;
+    return;
+  }
+
+  vec2 min_p01 = cull_info.clip_aabb_p0;
+  vec2 max_p01 = cull_info.clip_aabb_p1;
+
+  vec2 root_dimensions = disabled_root_dimensions.yz;
+  int level = calc_mip_level(min_p01, max_p01, root_dimensions);
+
+  vec2 res = max(vec2(1.0), root_dimensions / pow(2.0, float(level)));
+  vec2 min_texel = vec2(0.0);
+  vec2 max_texel = res - 1.0;
+
+  vec2 px00 = clamp(floor(min_p01 * res), min_texel, max_texel);
+  vec2 px11 = clamp(floor(max_p01 * res), min_texel, max_texel);
+  vec2 px10 = clamp(floor(vec2(max_p01.x, min_p01.y) * res), min_texel, max_texel);
+  vec2 px01 = clamp(floor(vec2(min_p01.x, max_p01.y) * res), min_texel, max_texel);
+
+  float d00 = texelFetch(depth_pyramid_image, ivec2(px00), level).r;
+  float d11 = texelFetch(depth_pyramid_image, ivec2(px11), level).r;
+  float d10 = texelFetch(depth_pyramid_image, ivec2(px10), level).r;
+  float d01 = texelFetch(depth_pyramid_image, ivec2(px01), level).r;
+  float self_d = cull_info.check_z;
+
+#if REVERSE_DEPTH
+  float scene_min_depth = min(min(min(d00, d11), d10), d01);
+  results[invoke_index].status = self_d < scene_min_depth ? OCCLUSION_CULL_RESULT_OCCLUDED : OCCLUSION_CULL_RESULT_VISIBLE;
+#else
+  float scene_max_depth = max(max(max(d00, d11), d10), d01);
+  results[invoke_index].status = self_d > scene_max_depth ? OCCLUSION_CULL_RESULT_OCCLUDED : OCCLUSION_CULL_RESULT_VISIBLE;
+#endif
+
+#endif
+}

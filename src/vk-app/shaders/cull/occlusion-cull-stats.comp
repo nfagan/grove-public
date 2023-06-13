@@ -1,0 +1,53 @@
+#version 450
+
+#pragma include "cull/occlusion-cull-types.glsl"
+
+layout (local_size_x = LOCAL_SIZE_X, local_size_y = 1, local_size_z = 1) in;
+
+struct OcclusionStats {
+  uint num_occluded;
+  uint num_visible;
+  uint num_frustum_culled;
+  uint pad1;
+};
+
+struct FrustumCullResult {
+  uint result;
+};
+
+layout (set = 0, binding = 0) readonly buffer OcclusionCullResults {
+  OcclusionCullResult occlusion_cull_results[];
+};
+
+layout (set = 0, binding = 1) readonly buffer FrustumCullResults {
+  FrustumCullResult frustum_cull_results[];
+};
+
+layout (set = 0, binding = 2) writeonly buffer WriteStats {
+  OcclusionStats stats;
+};
+
+layout (push_constant) uniform PushConstants {
+  uvec4 num_instances_unused;
+};
+
+void main() {
+  uint invoke_index = gl_GlobalInvocationID.x;
+  if (invoke_index >= num_instances_unused.x) {
+    return;
+  }
+
+  OcclusionCullResult result = occlusion_cull_results[invoke_index];
+  FrustumCullResult frust_result = frustum_cull_results[invoke_index];
+
+  if (frust_result.result == 0) {
+    atomicAdd(stats.num_frustum_culled, 1);
+  }
+
+  if (result.status == OCCLUSION_CULL_RESULT_OCCLUDED) {
+    atomicAdd(stats.num_occluded, 1);
+
+  } else if (result.status == OCCLUSION_CULL_RESULT_VISIBLE) {
+    atomicAdd(stats.num_visible, 1);
+  }
+}

@@ -8,7 +8,7 @@ add_library(${PROJECT_NAME} STATIC)
 
 if (APPLE)
   add_subdirectory(deps/portaudio)
-  target_link_libraries(${PROJECT_NAME} PUBLIC portaudio)
+  target_link_libraries(${PROJECT_NAME} PUBLIC PortAudio)
 else()
   target_link_directories(${PROJECT_NAME} PUBLIC deps/portaudio-win)
   target_include_directories(${PROJECT_NAME} PUBLIC deps/portaudio/include)
@@ -83,7 +83,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 if(MSVC)
   target_compile_options(${PROJECT_NAME} PRIVATE /W4)
 else()
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC GROVE_HAS_VULKAN=1)

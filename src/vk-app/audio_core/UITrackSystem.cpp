@@ -118,6 +118,9 @@ UITrackSystemTrackHandle track::create_track(
 
   midi::ui_enable_source(
     component.get_midi_message_stream_system(), track.midi_stream, ncsm::get_midi_source_id());
+  midi::ui_enable_source(
+    component.get_midi_message_stream_system(), track.midi_stream,
+    notes::get_triggered_notes_midi_source_id());
 
   arp::ui_set_pitch_sample_set_group(arp_sys, track.arp, pitch_sample_group);
   arp::ui_set_pitch_mode(arp_sys, track.arp, ArpeggiatorSystemPitchMode::RandomFromPitchSampleSet);

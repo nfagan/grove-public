@@ -16,6 +16,7 @@
 #include "grove/math/constants.hpp"
 #include "grove/math/util.hpp"
 #include "grove/common/common.hpp"
+#include "grove/common/profile.hpp"
 #include "grove/common/Temporary.hpp"
 #include "grove/common/scope.hpp"
 #include <imgui/imgui.h>
@@ -158,6 +159,45 @@ bool check_finished_pruning(PendingFinishPruning& pend, const tree::TreeSystem* 
     roots_finished = pend.roots.empty();
   }
   return trees_finished && roots_finished;
+}
+
+bool accept_tentative_bounds(
+  const ArchComponent* component, const OBB3f& bounds, const UpdateInfo& info) {
+  //
+  const auto* accel = bounds::request_read(
+    info.bounds_system, info.accel_handle, component->bounds_accessor_id);
+
+  if (!accel) {
+    return false;
+  }
+
+  const auto tree_tag = tree::get_bounds_tree_element_tag(info.tree_system);
+  const auto leaf_tag = tree::get_bounds_leaf_element_tag(info.tree_system);
+  const auto arch_tag = component->arch_bounds_element_tag;
+
+  Optional<bounds::ElementID> last_piece_element;
+  if (!component->debug_structure.bounds_elements.empty()) {
+    last_piece_element = component->debug_structure.bounds_elements.back().bounds_element;
+  }
+
+  std::vector<const bounds::Element*> elements;
+  accel->intersects(bounds::make_query_element(bounds), elements);
+  bool accept{true};
+
+  for (auto& el : elements) {
+    if (el->tag != tree_tag.id && el->tag != leaf_tag.id) {
+      //  can only prune trees and leaves, except allow intersection with parent piece if extruding
+      //  from parent
+      if (component->use_collider_bounds || el->tag != arch_tag.id ||
+          !last_piece_element || last_piece_element.value().id != el->id) {
+        accept = false;
+        break;
+      }
+    }
+  }
+
+  bounds::release_read(info.bounds_system, info.accel_handle, component->bounds_accessor_id);
+  return accept;
 }
 
 ArchComponentStructurePieceBoundsElements
@@ -440,13 +480,19 @@ void state_computing_bounds(ArchComponent* component, ArchComponentStructure& st
       arch::num_pieces_in_structure(sys, struct_handle) < Config::max_num_pieces_per_structure &&
       arch::can_extrude_structure(sys, struct_handle)) {
     //
+    OBB3f tentative_bounds;
     auto par_bounds = arch::get_last_structure_piece_bounds(sys, struct_handle);
     if (!par_bounds || component->use_collider_bounds) {
-      next_bounds = info.debug_collider_bounds;
+      tentative_bounds = info.debug_collider_bounds;
     } else {
-      next_bounds = arch::extrude_obb_xz(
+      tentative_bounds = arch::extrude_obb_xz(
         par_bounds.value(), component->bounds_theta, info.debug_collider_bounds.half_size * 2.0f);
     }
+
+    if (accept_tentative_bounds(component, tentative_bounds, info)) {
+      next_bounds = tentative_bounds;
+    }
+
     structure.need_compute_bounds = false;
   }
   if (next_bounds) {
@@ -611,12 +657,13 @@ void remove_pending_bounds(ArchComponent* component, const UpdateInfo& info) {
 }
 
 void draw_bounds_column_segment(
-  const Vec3f& p0, const Vec3f& p1, const Vec3f& j, const Vec3f& k, float w2, float dw) {
+  const Vec3f& p0, const Vec3f& p1, const Vec3f& j, const Vec3f& k, float w2, float dw,
+  const Vec3f& color) {
   //
   particle::SegmentedQuadVertexDescriptor vert_descs[6];
   for (auto& v : vert_descs) {
     v.min_depth_weight = dw;
-    v.color = Vec3f{1.0f, 0.0f, 0.0f};
+    v.color = color;
     v.translucency = 0.25f;
   }
 
@@ -637,16 +684,16 @@ void draw_bounds_column_segment(
 
 void draw_bounds_column(
   const Vec3f& p0, const Vec3f& p1,
-  const Vec3f& i, const Vec3f& j, const Vec3f& k, float w2, float dw) {
+  const Vec3f& i, const Vec3f& j, const Vec3f& k, float w2, float dw, const Vec3f& color) {
   //
   const float w = w2 * 2.0f;
-  draw_bounds_column_segment(p0 + i * w, p1 - i * w, j, k, w2, dw);   //  front
-  draw_bounds_column_segment(p0 + i * w, p1 - i * w, j, -k, w2, dw);  //  back
-  draw_bounds_column_segment(p0 + i * w, p1 - i * w, k, j, w2, dw);   //  top
-  draw_bounds_column_segment(p0 + i * w, p1 - i * w, -k, j, w2, dw);  //  bottom
+  draw_bounds_column_segment(p0 + i * w, p1 - i * w, j, k, w2, dw, color);   //  front
+  draw_bounds_column_segment(p0 + i * w, p1 - i * w, j, -k, w2, dw, color);  //  back
+  draw_bounds_column_segment(p0 + i * w, p1 - i * w, k, j, w2, dw, color);   //  top
+  draw_bounds_column_segment(p0 + i * w, p1 - i * w, -k, j, w2, dw, color);  //  bottom
 }
 
-void draw_tentative_bounds(const OBB3f& bounds, float dw) {
+void draw_tentative_bounds(const OBB3f& bounds, float dw, const Vec3f& color) {
   Vec3f vs[8];
   gather_vertices(bounds, vs);
   const float w = 0.125f;
@@ -654,19 +701,21 @@ void draw_tentative_bounds(const OBB3f& bounds, float dw) {
 
   for (int i = 0; i < 2; i++) {
     const int o = i * 4;
-    draw_bounds_column(vs[0 + o], vs[1 + o], {}, bounds.j, bounds.k, w2, dw);
-    draw_bounds_column(vs[3 + o], vs[2 + o], {}, bounds.j, bounds.k, w2, dw);
-    draw_bounds_column(vs[1 + o], vs[2 + o], {}, bounds.i, bounds.k, w2, dw);
-    draw_bounds_column(vs[3 + o], vs[0 + o], {}, bounds.i, bounds.k, w2, dw);
+    draw_bounds_column(vs[0 + o], vs[1 + o], {}, bounds.j, bounds.k, w2, dw, color);
+    draw_bounds_column(vs[3 + o], vs[2 + o], {}, bounds.j, bounds.k, w2, dw, color);
+    draw_bounds_column(vs[1 + o], vs[2 + o], {}, bounds.i, bounds.k, w2, dw, color);
+    draw_bounds_column(vs[3 + o], vs[0 + o], {}, bounds.i, bounds.k, w2, dw, color);
   }
 
-  draw_bounds_column(vs[0], vs[4], {}, bounds.j, bounds.i, w2, dw);
-  draw_bounds_column(vs[1], vs[5], {}, bounds.j, bounds.i, w2, dw);
-  draw_bounds_column(vs[2], vs[6], {}, bounds.j, bounds.i, w2, dw);
-  draw_bounds_column(vs[3], vs[7], {}, bounds.j, bounds.i, w2, dw);
+  draw_bounds_column(vs[0], vs[4], {}, bounds.j, bounds.i, w2, dw, color);
+  draw_bounds_column(vs[1], vs[5], {}, bounds.j, bounds.i, w2, dw, color);
+  draw_bounds_column(vs[2], vs[6], {}, bounds.j, bounds.i, w2, dw, color);
+  draw_bounds_column(vs[3], vs[7], {}, bounds.j, bounds.i, w2, dw, color);
 }
 
-void draw_tentative_bounds(const ArchComponent* component, const OBB3f& tentative_bounds) {
+void draw_tentative_bounds(
+  const ArchComponent* component, const OBB3f& tentative_bounds, const Vec3f& color) {
+  //
   if (component->disable_tentative_bounds_highlight) {
     return;
   }
@@ -677,7 +726,25 @@ void draw_tentative_bounds(const ArchComponent* component, const OBB3f& tentativ
   }
 
   double min_depth_weight = clamp01(std::sin(component->repr_elapsed_time * 8.0) * 0.5 + 0.5);
-  draw_tentative_bounds(tentative_bounds, float(min_depth_weight));
+  draw_tentative_bounds(tentative_bounds, float(min_depth_weight), color);
+}
+
+Optional<OBB3f> get_tentative_bounds(
+  const ArchComponent* component, arch::SegmentedStructureSystem* sys, const OBB3f& collider_bounds) {
+  //
+  if (component->use_collider_bounds) {
+    return Optional<OBB3f>(collider_bounds);
+  }
+
+  auto struct_handle = component->debug_structure.structure_handle;
+  auto par_bounds = arch::get_last_structure_piece_bounds(sys, struct_handle);
+  if (!par_bounds) {
+    return NullOpt{};
+  }
+
+  auto tentative_bounds = arch::extrude_obb_xz(
+    par_bounds.value(), component->bounds_theta, collider_bounds.half_size * 2.0f);
+  return Optional<OBB3f>(tentative_bounds);
 }
 
 struct {
@@ -713,6 +780,9 @@ void initialize_arch_component(ArchComponent* component, const InitInfo& info) {
 }
 
 void update_arch_component(ArchComponent* component, const UpdateInfo& info) {
+  auto profiler = GROVE_PROFILE_SCOPE_TIC_TOC("update_arch_component");
+  (void) profiler;
+
   auto* sys = arch::get_global_segmented_structure_system();
   begin_update_structure(component, component->debug_structure, sys, info);
 
@@ -723,15 +793,8 @@ void update_arch_component(ArchComponent* component, const UpdateInfo& info) {
   evaluate_updated_structure(component, component->debug_structure, sys, info);
   update_pending_projection_onto_structure(component, component->debug_structure, info);
 
-  if (!component->use_collider_bounds) {
-    auto struct_handle = component->debug_structure.structure_handle;
-    if (auto par_bounds = arch::get_last_structure_piece_bounds(sys, struct_handle)) {
-      auto tentative_bounds = arch::extrude_obb_xz(
-        par_bounds.value(), component->bounds_theta, info.debug_collider_bounds.half_size * 2.0f);
-      draw_tentative_bounds(component, tentative_bounds);
-    }
-  } else {
-    draw_tentative_bounds(component, info.debug_collider_bounds);
+  if (auto bounds = get_tentative_bounds(component, sys, info.debug_collider_bounds)) {
+    draw_tentative_bounds(component, bounds.value(), Vec3f{0.0f, 0.0f, 1.0f});
   }
 
   remove_pending_bounds(component, info);

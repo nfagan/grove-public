@@ -769,7 +769,7 @@ function(configure_compiler_flags project)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         target_compile_options(${project} PRIVATE -Wall -Wextra -pedantic)
     else()
-        target_compile_options(${project} PRIVATE -Wall -Wextra -pedantic -Werror)
+        target_compile_options(${project} PRIVATE -Wall -Wextra -pedantic)
     endif()
 endfunction(configure_compiler_flags)
 

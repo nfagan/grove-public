@@ -16,6 +16,7 @@
 #include "grove/common/Optional.hpp"
 #include "grove/input/KeyTrigger.hpp"
 #include "grove/input/MouseButtonTrigger.hpp"
+#include "grove/math/random.hpp"
 
 #define GUI_LAYOUT_ID (17)
 #define BOXIDI(i) grove::gui::layout::BoxID::create(GUI_LAYOUT_ID, (i))
@@ -50,6 +51,7 @@ struct AudioTrackEditorData {
   elements::SliderData slider_pitch_sample_group1_mode{};
   elements::SliderData slider_pitch_sample_group2_mode{};
   elements::SliderData slider_rhythm_p_quantized{};
+  elements::SliderData slider_clip_randomization_note_set_index{};
   TrackControlMode track_control_mode{};
 };
 
@@ -233,6 +235,67 @@ void play_clip(void* ctx, const elements::StatefulButtonData& data) {
   uint32_t si{};
   data.as_2_uint32(&vi, &si);
   ncsm::set_next_section_index(control_ncsm, ncsm_sys, int(vi), int(si));
+}
+
+void randomize_one_clip(
+  const AudioEditorCommonContext& context, NoteClipSystem* clip_sys,
+  const AudioScaleSystem* scale_sys, NoteClipHandle clip_handle, int nsi) {
+  //
+  const ScoreCursor clip_sizes[3]{ScoreCursor{1, 0}, ScoreCursor{2, 0}, ScoreCursor{4, 0}};
+  const double beat_event_intervals[6]{1.0, 1.0, 1.0, 0.5, 0.5, 0.25};
+  const double p_rests[5]{0.125, 0.125, 0.125, 0.5, 0.75};
+  const double tsig_num = reference_time_signature().numerator;
+  auto clip_size = *uniform_array_sample(clip_sizes, 3);
+  double p_rest = *uniform_array_sample(p_rests, 5);
+  double event_isi = *uniform_array_sample(beat_event_intervals, 6);
+
+  float sts[pss::PitchSamplingParameters::max_num_notes];
+  int num_sts{};
+  context.pitch_sampling_parameters.get_note_set(scale_sys, nsi, sts, &num_sts);
+  assert(num_sts > 0);
+  ui_randomize_clip_contents(
+    clip_sys, clip_handle, clip_size, tsig_num, p_rest, event_isi, sts, num_sts);
+}
+
+void randomize_all_clip_contents(void* ctx) {
+  auto& data = globals.data;
+  auto& context = *static_cast<const AudioEditorCommonContext*>(ctx);
+
+  auto* ncsm_sys = context.audio_component.get_note_clip_state_machine_system();
+  auto* clip_sys = context.audio_component.get_note_clip_system();
+  const auto* scale_sys = context.audio_component.get_audio_scale_system();
+  const auto* control_ncsm_sys = &context.control_note_clip_state_machine;
+  const int nsi = int(data.slider_clip_randomization_note_set_index.value);
+
+  const int ri = ncsm::get_ui_section_range_index();
+  const auto section_range = ncsm::get_section_range(control_ncsm_sys, ri);
+  const int nv = ncsm::ui_get_num_voices(ncsm_sys);
+
+  for (int vi = 0; vi < nv; vi++) {
+    for (int si = section_range.begin; si < section_range.end; si++) {
+      auto read_section = ncsm::ui_read_section(ncsm_sys, si);
+      randomize_one_clip(context, clip_sys, scale_sys, read_section.clip_handle, nsi);
+    }
+  }
+}
+
+void randomize_clip_contents(void* ctx) {
+  auto& data = globals.data;
+  auto& context = *static_cast<const AudioEditorCommonContext*>(ctx);
+  if (!data.selected_track) {
+    return;
+  }
+
+  auto* ncsm_sys = context.audio_component.get_note_clip_state_machine_system();
+  auto* clip_sys = context.audio_component.get_note_clip_system();
+  const auto* scale_sys = context.audio_component.get_audio_scale_system();
+
+  auto* track = track::read_track(&context.ui_track_system, data.selected_track.value());
+  auto read_voice = ncsm::ui_read_voice(ncsm_sys, track->ncsm_voice_index);
+  const auto read_section = ncsm::ui_read_section(ncsm_sys, read_voice.section);
+  const int nsi = int(data.slider_clip_randomization_note_set_index.value);
+
+  randomize_one_clip(context, clip_sys, scale_sys, read_section.clip_handle, nsi);
 }
 
 void clear_clip_contents(void* ctx) {
@@ -498,6 +561,10 @@ void prepare_ncsm_control(
   layout::begin_group(layout, section0, layout::GroupOrientation::Col);
   int toggle_rec = layout::box(layout, {1, 32, 32}, {1, 32, 32});
   layout::set_box_is_clickable(layout, toggle_rec);
+  int randomize_clip = layout::box(layout, {1, 32, 32}, {1, 32, 32});
+  layout::set_box_is_clickable(layout, randomize_clip);
+  int randomize_all_clips = layout::box(layout, {1, 32, 32}, {1, 32, 32});
+  layout::set_box_is_clickable(layout, randomize_all_clips);
   int clear_clip = layout::box(layout, {1, 32, 32}, {1, 32, 32});
   layout::set_box_is_clickable(layout, clear_clip);
   layout::end_group(layout);
@@ -508,13 +575,37 @@ void prepare_ncsm_control(
     elements::push_button(&data.gui_elements, toggle_rec, toggle_midi_recording);
   }
 
+  if (allow_clip_mod) { //  randomize clip
+    auto color = Vec3f{0.0f, 0.0f, 1.0f};
+    draw_box(data.draw_list, layout, randomize_clip, ui::make_render_quad_desc_style(color));
+    elements::push_button(&data.gui_elements, randomize_clip, randomize_clip_contents);
+  }
+
+  if (allow_clip_mod) { //  randomize all clips
+    auto color = Vec3f{0.0f, 1.0f, 1.0f};
+    draw_box(data.draw_list, layout, randomize_all_clips, ui::make_render_quad_desc_style(color));
+    elements::push_button(&data.gui_elements, randomize_all_clips, randomize_all_clip_contents);
+  }
+
   if (allow_clip_mod) { //  clear clip
     auto color = Vec3f{};
     draw_box(data.draw_list, layout, clear_clip, ui::make_render_quad_desc_style(color));
     elements::push_button(&data.gui_elements, clear_clip, clear_clip_contents);
   }
 
-  (void) section1;
+  data.slider_clip_randomization_note_set_index.min_value = float(
+    pss::PitchSamplingParameters::min_note_set_index());
+  data.slider_clip_randomization_note_set_index.max_value = float(
+    pss::PitchSamplingParameters::max_note_set_index());
+  data.slider_clip_randomization_note_set_index.set_stepped(true);
+  data.slider_clip_randomization_note_set_index.step_value = 1;
+  auto pm_res = prepare_simple_slider(
+    data.gui_elements, &data.slider_clip_randomization_note_set_index, layout, section1,
+    {1}, {1, 16, 16}, {1, 32, 32}, &context.cursor_state, nullptr);
+
+  auto track_style = ui::make_render_quad_desc_style(Vec3f{1.0f}, 0, {}, 0, 0.5f);
+  draw_box(data.draw_list, layout, pm_res.slider_section, track_style);
+  draw_box(data.draw_list, layout, pm_res.handle, ui::make_render_quad_desc_style(Vec3f{1.0f}, 2.0f));
 }
 
 void prepare_clip_length_slider(

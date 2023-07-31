@@ -138,4 +138,12 @@ void ncsm::set_section_range(
   }
 }
 
+int ncsm::get_ui_section_range_index() {
+  return 0;
+}
+
+int ncsm::get_environment_section_range_index() {
+  return 1;
+}
+
 GROVE_NAMESPACE_END

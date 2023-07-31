@@ -48,4 +48,7 @@ void set_next_section_index(
 void set_section_range(
   ControlNoteClipStateMachine* control, NoteClipStateMachineSystem* sys, int vi, int ri);
 
+int get_ui_section_range_index();
+int get_environment_section_range_index();
+
 }

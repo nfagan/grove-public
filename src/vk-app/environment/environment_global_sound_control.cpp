@@ -53,24 +53,6 @@ namespace {
 using namespace env;
 using UpdateInfo = env::GlobalSoundControlUpdateInfo;
 
-int ui_ncsm_section_range_index() {
-  return 0;
-}
-
-int environment_ncsm_section_range_index() {
-  return 1;
-}
-
-MIDINote c_relative_semitone_offset_to_midi_note(int st, int8_t base_octave, int8_t velocity) {
-  const int8_t oct = int8_t(clamp(st / 12 + int(base_octave), -128, 127));
-  auto pc = PitchClass(wrap_within_range(st, 12));
-  MIDINote result{};
-  result.octave = oct;
-  result.pitch_class = pc;
-  result.velocity = velocity;
-  return result;
-}
-
 void set_ncsm_voice_section_ranges(GlobalSoundControl*, int ri, const UpdateInfo& info) {
   auto* ncsm_sys = info.audio_component.get_note_clip_state_machine_system();
   auto* control_ncsm_sys = &info.control_ncsm;
@@ -128,7 +110,7 @@ void prepare_ncsm_event(GlobalSoundControl* control, const UpdateInfo& info) {
   auto* scale_sys = info.audio_component.get_audio_scale_system();
   auto* transport = &info.audio_component.audio_transport;
 
-  const int ri = environment_ncsm_section_range_index();
+  const int ri = ncsm::get_environment_section_range_index();
   const auto section_range = ncsm::get_section_range(control_ncsm_sys, ri);
   const int nv = ncsm::ui_get_num_voices(ncsm_sys);
 
@@ -179,6 +161,13 @@ void prepare_ncsm_event(GlobalSoundControl* control, const UpdateInfo& info) {
   for (int vi = 0; vi < nv; vi++) {
     for (int si = section_range.begin; si < section_range.end; si++) {
       auto read_section = ncsm::ui_read_section(ncsm_sys, si);
+#if 1
+      auto clip_size = *uniform_array_sample(clip_sizes, 3);
+      const double p_rest = *uniform_array_sample(p_rests, 5);
+      double event_isi = *uniform_array_sample(beat_event_intervals, 6);
+      ui_randomize_clip_contents(
+        note_clip_sys, read_section.clip_handle, clip_size, tsig_num, p_rest, event_isi, sts, num_sts);
+#else
       ui_remove_all_notes(note_clip_sys, read_section.clip_handle);
 
       auto clip_size = *uniform_array_sample(clip_sizes, 3);
@@ -204,6 +193,7 @@ void prepare_ncsm_event(GlobalSoundControl* control, const UpdateInfo& info) {
         note.note = c_relative_semitone_offset_to_midi_note(int(st), 3, 127);
         ui_add_note(note_clip_sys, read_section.clip_handle, note);
       }
+#endif
     }
   }
 }
@@ -224,7 +214,7 @@ auto update_control_ncsm_event(GlobalSoundControl* control, const UpdateInfo& in
       break;
     }
     case State::TransitioningToActive: {
-      set_ncsm_voice_section_ranges(control, environment_ncsm_section_range_index(), info);
+      set_ncsm_voice_section_ranges(control, ncsm::get_environment_section_range_index(), info);
       start_ncsm(control, info);
       control->control_ncsm_event.state = State::Active;
       control->state_timer.reset();
@@ -246,7 +236,7 @@ auto update_control_ncsm_event(GlobalSoundControl* control, const UpdateInfo& in
       break;
     }
     case State::TransitioningToInactive: {
-      set_ncsm_voice_section_ranges(control, ui_ncsm_section_range_index(), info);
+      set_ncsm_voice_section_ranges(control, ncsm::get_ui_section_range_index(), info);
       restore_ncsm_parameters(control, info);
       control->control_ncsm_event.state = State::Idle;
       control->control_ncsm_event.event_count++;

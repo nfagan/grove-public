@@ -134,6 +134,10 @@ int ui_collect_notes_intersecting_region(const NoteClipSystem* sys, const NoteCl
                                          const ScoreRegion& region, uint32_t* dst_indices,
                                          ClipNote* dst, int max_num);
 
+void ui_randomize_clip_contents(
+  NoteClipSystem* sys, NoteClipHandle clip, ScoreCursor clip_size, double tsig_num,
+  double p_rest, double beat_event_interval, const float* sts, int num_sts);
+
 void initialize(NoteClipSystem* sys);
 void ui_update(NoteClipSystem* sys);
 void begin_render(NoteClipSystem* sys);

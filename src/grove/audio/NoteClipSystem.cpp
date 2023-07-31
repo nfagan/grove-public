@@ -1,4 +1,6 @@
 #include "NoteClipSystem.hpp"
+#include "grove/math/random.hpp"
+#include "grove/math/util.hpp"
 #include "grove/common/common.hpp"
 
 GROVE_NAMESPACE_BEGIN
@@ -377,6 +379,48 @@ int ui_collect_notes_intersecting_region(const NoteClipSystem* sys, const NoteCl
     &inst->note_accel,
     read_note_query_tree(&inst->note_accel, clip->note_accel_instance),
     region, dst_indices, dst, max_num);
+}
+
+namespace {
+
+MIDINote c_relative_semitone_offset_to_midi_note(int st, int8_t base_octave, int8_t velocity) {
+  const int8_t oct = int8_t(clamp(st / 12 + int(base_octave), -128, 127));
+  auto pc = PitchClass(wrap_within_range(st, 12));
+  MIDINote result{};
+  result.octave = oct;
+  result.pitch_class = pc;
+  result.velocity = velocity;
+  return result;
+}
+
+} //  anon
+
+void ui_randomize_clip_contents(
+  NoteClipSystem* clip_sys, NoteClipHandle clip_handle, ScoreCursor clip_size, double tsig_num,
+  double p_rest, double beat_event_interval, const float* sts, int num_sts) {
+  //
+  ui_remove_all_notes(clip_sys, clip_handle);
+
+  const double clip_size_beats = clip_size.to_beats(tsig_num);
+  double event_isi = beat_event_interval;
+  int num_events = std::max(1, int(clip_size_beats / event_isi));
+
+  for (int e = 0; e < num_events; e++) {
+    if (urand() < p_rest) {
+      continue;
+    }
+
+    const float st = *uniform_array_sample(sts, num_sts);
+
+    ScoreCursor start = ScoreCursor::from_beats(event_isi * double(e), tsig_num);
+    ScoreCursor end = start;
+    end.wrapped_add_beats(event_isi, tsig_num);
+
+    ClipNote note{};
+    note.span = ScoreRegion::from_begin_end(start, end, tsig_num);
+    note.note = c_relative_semitone_offset_to_midi_note(int(st), 3, 127);
+    ui_add_note(clip_sys, clip_handle, note);
+  }
 }
 
 void initialize(NoteClipSystem* sys) {

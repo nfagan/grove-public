@@ -15,7 +15,7 @@ A pre-built binary and asset bundle for Windows is available [here](https://gith
 ## prerequesites
 
 * git and Apple's developer tools
-    * Press command and space to open spotlight search; search for `terminal.app` and press enter to open a terminal window. Type `git --version` and press enter. This checks to see if git is installed. If it is, a version string will be printed (e.g. git version 2.32.0). Otherwise, you will be prompted to install Apples' developer tools; click accept/ok to install these tools.
+    * Open `terminal.app`. Type `git --version` and press enter. This checks to see if git is installed. If it is not, you will be prompted to install Apple's developer tools.
 * Vulkan SDK 
     * [Download and install](https://sdk.lunarg.com/sdk/download/1.3.236.0/mac/vulkansdk-macos-1.3.236.0.dmg). **Important note**: This link points to the specific SDK version (1.3.236.0) I have validated with my M1-based machine. Newer SDK versions might work, but have not been tested. When selecting components to install, the defaults are fine (you can just click continue through the installer).
 * cmake

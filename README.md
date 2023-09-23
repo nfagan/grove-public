@@ -16,8 +16,8 @@ A pre-built binary and asset bundle for Windows is available [here](https://gith
 
 * git and Apple's developer tools
     * Open `terminal.app`. Type `git --version` and press enter. This checks to see if git is installed. If it is not, you will be prompted to install Apple's developer tools.
-* Vulkan SDK 
-    * [Download and install](https://sdk.lunarg.com/sdk/download/1.3.236.0/mac/vulkansdk-macos-1.3.236.0.dmg). **Important note**: This link points to the specific SDK version (1.3.236.0) I have validated with my M1-based machine. Newer SDK versions might work, but have not been tested. When selecting components to install, the defaults are fine (you can just click continue through the installer).
+* [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/)
+    * [Download and install](https://sdk.lunarg.com/sdk/download/1.3.236.0/mac/vulkansdk-macos-1.3.236.0.dmg). **Important note**: This link points to the specific SDK version (1.3.236.0) I have validated with my M1-based machine. Newer SDK versions might work, but have not been tested. In the installer, when given the option, select the system-global installation option.
 * cmake
     * [Download and install](https://cmake.org/download/). If given the option to add cmake to the path, click OK to enable this.
 
@@ -51,8 +51,8 @@ cd ~/Downloads/grove-public
     * [Download and install](https://visualstudio.microsoft.com/). The community edition is free.
 * git
     * [Download and install](https://git-scm.com/download/win). Note that this is not just git, but a terminal emulator used to build and run the program.
-* Vulkan SDK
-    * [Download and install](https://sdk.lunarg.com/sdk/download/1.3.243.0/windows/VulkanRT-1.3.243.0-Installer.exe). **Important note**: This link points to the specific SDK version (1.3.243.0) I have validated with my machine. Newer SDK versions might work, but have not been tested. When selecting components to install, the defaults are fine (you can just click continue through the installer).
+* [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/)
+    * [Download and install](https://sdk.lunarg.com/sdk/download/1.3.243.0/windows/VulkanRT-1.3.243.0-Installer.exe). **Important note**: This link points to the specific SDK version (1.3.243.0) I have validated with my machine. Newer SDK versions might work, but have not been tested. In the installer, when given the option, select the system-global installation option.
 
 ## build
 

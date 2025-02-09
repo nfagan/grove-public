@@ -664,8 +664,9 @@ void initialize_soil_component(App& app) {
   });
 }
 
-void initialize_ui_components(App& app) {
+void initialize_ui_components(App& app, const vk::GLFWContext& context) {
   app.ui_component.initialize();
+  app.mouse.set_frame(context.monitor_content_scale_x, context.monitor_content_scale_y);
 }
 
 void initialize_bounds_component(App& app) {
@@ -887,7 +888,7 @@ bool initialize(App& app, const cmd::Arguments& args) {
   initialize_terrain_component(app);
   initialize_model_component(app);
   initialize_soil_component(app);
-  initialize_ui_components(app);
+  initialize_ui_components(app, app.glfw_context);
   initialize_bounds_component(app);
   initialize_fog_component(app);
   initialize_root_systems(app);

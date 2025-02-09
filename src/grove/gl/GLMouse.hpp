@@ -31,6 +31,7 @@ public:
   Coordinates get_clear_scroll();
   void set_coordinates(double to_x, double to_y) override;
   void set_frame(float sx, float sy, float ox, float oy) override;
+  void set_frame(float sx, float sy);
 
   void mark_pressed(Button button) override;
   void mark_released(Button button) override;

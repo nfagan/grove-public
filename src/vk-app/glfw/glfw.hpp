@@ -23,6 +23,8 @@ struct GLFWContext {
   GLFWwindow* window{};
   int framebuffer_width{};
   int framebuffer_height{};
+  float monitor_content_scale_x{1.0f};
+  float monitor_content_scale_y{1.0f};
 };
 
 struct GLFWContextCreateInfo {

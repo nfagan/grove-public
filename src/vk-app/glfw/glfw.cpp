@@ -49,8 +49,9 @@ Result<GLFWContext> vk::create_and_initialize_glfw_context(const GLFWContextCrea
   }
 
   GLFWmonitor* fullscreen_monitor{};
+  GLFWmonitor* primary_monitor = glfwGetPrimaryMonitor();
   if (info.fullscreen_window_index == GLFWContextCreateInfo::default_monitor_index) {
-    fullscreen_monitor = glfwGetPrimaryMonitor();
+    fullscreen_monitor = primary_monitor;
   } else if (info.fullscreen_window_index >= 0) {
     int monitor_count;
     GLFWmonitor** monitors = glfwGetMonitors(&monitor_count);
@@ -71,6 +72,11 @@ Result<GLFWContext> vk::create_and_initialize_glfw_context(const GLFWContextCrea
     const GLFWvidmode* mode = glfwGetVideoMode(fullscreen_monitor);
     glfwSetWindowMonitor(
       window, fullscreen_monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+  }
+
+  if (primary_monitor) {
+    glfwGetMonitorContentScale(
+      primary_monitor, &context.monitor_content_scale_x, &context.monitor_content_scale_y);
   }
 
   glfwGetFramebufferSize(window, &context.framebuffer_width, &context.framebuffer_height);

@@ -94,6 +94,9 @@ void GLMouse::set_frame(float sx, float sy, float ox, float oy) {
   offset_y = oy;
 }
 
+void GLMouse::set_frame(float sx, float sy) {
+  set_frame(sx, sy, 0.0f, 0.0f);
+}
 
 Mouse::Coordinates GLMouse::get_coordinates() const {
   return std::make_pair(x.load(), y.load());

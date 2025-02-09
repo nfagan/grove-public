@@ -83,9 +83,17 @@ void GLMouse::make_active_instance() {
 }
 
 void GLMouse::set_coordinates(double to_x, double to_y) {
-  x = to_x;
-  y = to_y;
+  x = to_x * scale_x + offset_x;
+  y = to_y * scale_y + offset_y;
 }
+
+void GLMouse::set_frame(float sx, float sy, float ox, float oy) {
+  scale_x = sx;
+  scale_y = sy;
+  offset_x = ox;
+  offset_y = oy;
+}
+
 
 Mouse::Coordinates GLMouse::get_coordinates() const {
   return std::make_pair(x.load(), y.load());

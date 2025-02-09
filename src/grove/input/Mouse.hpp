@@ -21,6 +21,7 @@ public:
   
   virtual Coordinates get_coordinates() const = 0;
   virtual void set_coordinates(double x, double y) = 0;
+  virtual void set_frame(float sx, float sy, float ox, float oy) = 0;
 
   virtual void mark_pressed(Button button) = 0;
   virtual void mark_released(Button button) = 0;

@@ -30,6 +30,7 @@ public:
   Coordinates get_coordinates() const override;
   Coordinates get_clear_scroll();
   void set_coordinates(double to_x, double to_y) override;
+  void set_frame(float sx, float sy, float ox, float oy) override;
 
   void mark_pressed(Button button) override;
   void mark_released(Button button) override;
@@ -46,5 +47,9 @@ private:
   std::atomic<double> y;
   float scroll_x;
   float scroll_y;
+  float scale_x{1.0f};
+  float scale_y{1.0f};
+  float offset_x{};
+  float offset_y{};
   std::array<bool, Mouse::number_of_buttons()> button_state;
 };

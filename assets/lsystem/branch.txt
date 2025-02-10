@@ -1,0 +1,92 @@
+module A(v: v3, ord: float, spooky: bool) end
+module I(v: float, p: v3, d: v3, l: float, ord: float) is internode end
+module C() end
+
+system S(
+  urand3: () -> v3, 
+  urand: () -> float, 
+  norm3: (v3) -> v3,
+  print: (float) -> void)
+
+  axiom { A(v3(0, 1, 0), 0, false) }
+
+  rule (a: A)
+    spooky := a.spooky
+    # spooky := urand() < 0.5
+
+    two := v3(2,2,2)
+    one := v3(1,1,1)
+    zero := v3(0,0,0)
+    
+    len := 1
+    p := zero
+    i := I(1, p, v3(1, 2, 3), len, a.ord)
+
+    r := 0.3
+    up_pref := 1
+
+    if spooky
+      up_pref = 2 - a.ord
+    end
+
+    i.d = norm3(a.v + v3(r,r,r) * (urand3() * two - one) + v3(0, up_pref, 0))
+
+    i2 := i
+    r2 := 0.4
+    i2.d = norm3(i.d + (urand3() * two - one) * v3(r2,r2,r2))
+
+    i3 := i2
+    i3.d = norm3(i.d + (urand3() * two - one) * v3(r2,r2,r2))
+
+    la := a
+    lb := a
+    lc := a
+  
+    la.ord = la.ord + 1
+    lb.ord = lb.ord + 1
+    lc.ord = lc.ord + 2
+
+    la.v = norm3((urand3() * two - one) * v3(1, 0.05, 1))
+    lb.v = norm3((urand3() * two - one) * v3(1, 0.05, 1))
+    lc.v = norm3((urand3() * two - one) * v3(1, 0.05, 1))
+
+    if spooky
+      return {i, [la, [lc]], [lb], i2, a}
+    else
+      # return {a, a, a, i2}
+      return {i, [la], [lb], i2, a}
+    end
+  end
+
+  # rule (i0: I, i1: I, pred i2: I, pred i3: I, i4: I, i5: I, i6: I, i7: I, i8: I, i9: I, i10: I)
+  #   a := A(i0.d, i0.ord + 1, false)
+  #   return {i2, i3, a, a, a, [i5], [i6]}
+  # end
+
+  rule (i: I)
+    two := v3(2,2,2)
+    one := v3(1,1,1)
+
+    rscl := 0.5
+    if i.ord > 0
+      rscl = 0.5 * i.ord
+    end
+    # rscl = 0.2
+
+    i2 := i
+    r := 0.3 * rscl
+    i2.d = norm3(i2.d + (urand3() * two - one) * v3(r,r,r))
+
+    if false
+      i2.d.x = 0 - i2.d.x
+      i2.d.z = 0 - i2.d.z
+      i2.d = norm3(i2.d)
+    end
+
+    if true
+      i2.l = 0.5
+    end
+    
+    return {i, i2}
+  end  
+end

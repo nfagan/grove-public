@@ -10,6 +10,7 @@
 #include "debug_growth_system.hpp"
 #include "resource_flow_along_nodes.hpp"
 #include "../environment/season.hpp"
+#include "../cloud/distribute_points.hpp"
 #include "grove/audio/AudioParameterSystem.hpp"
 #include "grove/math/util.hpp"
 #include "grove/math/random.hpp"
@@ -1523,6 +1524,41 @@ ArrayView<const tree::TreeID> ProceduralTreeComponent::read_newly_created() cons
 
 ArrayView<const tree::TreeID> ProceduralTreeComponent::read_newly_destroyed() const {
   return make_view(newly_destroyed);
+}
+
+void ProceduralTreeComponent::create_tree_patches() {
+  constexpr int trees_per_patch = 32;
+  constexpr int patch_dim = 3;
+  constexpr float patch_radius = 64.0f;
+
+  Temporary<bool, trees_per_patch> accept_sample;
+  Temporary<Vec2f, trees_per_patch> tree_ori_xzs;
+
+  bool* accept = accept_sample.require(trees_per_patch);
+  Vec2f* tree_oris = tree_ori_xzs.require(trees_per_patch);
+
+  const float r = points::place_outside_radius_default_radius(trees_per_patch, 1.0f);
+  points::place_outside_radius<Vec2f, float, 2>(tree_oris, accept, trees_per_patch, r);
+
+  for (int xi = 0; xi < patch_dim; xi++) {
+    for (int yi = 0; yi < patch_dim; yi++) {
+      auto patch_ori = Terrain::terrain_dim * 0.5f * Vec2f{
+        ((float(xi) + 0.5f) / float(patch_dim) * 2.0f - 1.0f) * 0.75f,
+        ((float(yi) + 0.5f) / float(patch_dim) * 2.0f - 1.0f) * 0.75f,
+      };
+
+      for (int t = 0; t < trees_per_patch; t++) {
+        auto tree_pos = patch_ori + (tree_oris[t] * 2.0f - 1.0f) * patch_radius;
+        if (tree_pos.length() > Terrain::terrain_dim * 0.5f - 32.0f) {
+          continue;
+        }
+
+        PendingNewTree pend{};
+        pend.position = Vec3f{tree_pos.x, 0.0f, tree_pos.y};
+        pending_new_trees.push_back(std::move(pend));
+      }
+    }
+  }
 }
 
 void ProceduralTreeComponent::create_tree(bool at_tform_pos) {

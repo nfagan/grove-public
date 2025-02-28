@@ -21,12 +21,21 @@ struct TreeGUIData {
   elements::SliderData growth_rate_slider{};
   elements::CheckboxData grow_by_signal_checkbox{};
   elements::CheckboxData disable_auto_recede_checkbox{};
+  bool create_tree_patches{};
 };
+
+struct {
+  TreeGUIData data;
+} globals;
 
 void create_tree(void* context) {
   const auto* ctx = static_cast<const WorldGUIContext*>(context);
-  for (int i = 0; i < ctx->procedural_tree_component.num_trees_manually_add; i++) {
-    ctx->procedural_tree_component.create_tree(true);
+  if (globals.data.create_tree_patches) {
+    ctx->procedural_tree_component.create_tree_patches();
+  } else {
+    for (int i = 0; i < ctx->procedural_tree_component.num_trees_manually_add; i++) {
+      ctx->procedural_tree_component.create_tree(true);
+    }
   }
 }
 
@@ -70,6 +79,14 @@ void choose_leaves_type(int opt, void* context) {
 }
 
 void choose_num_trees(int opt, void* context) {
+  if (opt == 4) {
+    //  "patches"
+    globals.data.create_tree_patches = true;
+    return;
+  }
+
+  globals.data.create_tree_patches = false;
+
   const auto* ctx = static_cast<const WorldGUIContext*>(context);
   auto& component = ctx->procedural_tree_component;
   component.num_trees_manually_add = [opt]() {
@@ -137,10 +154,6 @@ int current_num_trees_in_world(const ProceduralTreeComponent& component) {
   return component.num_trees_in_world();
 }
 
-struct {
-  TreeGUIData data;
-} globals;
-
 } //  anon
 
 void gui::clear_tree_gui() {
@@ -196,9 +209,9 @@ void gui::prepare_tree_gui(layout::Layout* layout, int container, elements::Elem
     draw_dropdown_labels(context.render_data, layout, prep_res.box_index_begin, prep_res.box_index_end, &data.leaves_type_dropdown, text_font, leaves_opts, font_size, Vec3f{});
   }
   {
-    data.num_trees_dropdown.option = clamp(current_num_trees_index(context.procedural_tree_component), 0, 3);
-    const char* num_trees_opts[4] = {"one", "five", "twenty", "one hundred"};
-    auto prep_res = prepare_dropdown(elements, &data.num_trees_dropdown, layout, row2, 1, {1}, line_h, 4, choose_num_trees);
+    data.num_trees_dropdown.option = data.create_tree_patches ? 4 : clamp(current_num_trees_index(context.procedural_tree_component), 0, 3);
+    const char* num_trees_opts[5] = {"one", "five", "twenty", "one hundred", "many"};
+    auto prep_res = prepare_dropdown(elements, &data.num_trees_dropdown, layout, row2, 1, {1}, line_h, 5, choose_num_trees);
     float trans = data.num_trees_dropdown.open ? 0.0f : 0.5f;
     draw_boxes(data.box_draw_list, layout, prep_res.box_index_begin, prep_res.box_index_end, ui::make_render_quad_desc_style(Vec3f{1.0f}, {}, {}, {}, trans), data.num_trees_dropdown.open ? 1 : 0);
     draw_dropdown_labels(context.render_data, layout, prep_res.box_index_begin, prep_res.box_index_end, &data.num_trees_dropdown, text_font, num_trees_opts, font_size, Vec3f{});

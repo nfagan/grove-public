@@ -109,7 +109,7 @@ public:
   ~DebugProceduralTreeComponent();
   void initialize(const InitInfo& info);
   [[nodiscard]] UpdateResult update(const UpdateInfo& info);
-  void render_gui(const tree::VineSystem* vine_system);
+  void render_gui(const tree::VineSystem* vine_system, ProceduralTreeComponent& comp);
   foliage_occlusion::FoliageOcclusionSystem* get_foliage_occlusion_system() const {
     assert(debug_foliage_lod_system);
     return debug_foliage_lod_system;

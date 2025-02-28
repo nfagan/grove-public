@@ -478,7 +478,7 @@ bool initialize_glfw(vk::GLFWContext* context, App* app, const cmd::Arguments& a
 #ifdef GROVE_DEBUG
   info.window_title = "<debug>";
 #else
-  info.window_title = "<release>";
+  info.window_title = "grove";
 #endif
   auto res = vk::create_and_initialize_glfw_context(info);
   if (!res) {
@@ -2311,7 +2311,7 @@ void render_procedural_tree_component_gui(App& app) {
       app.imgui_component.procedural_tree_gui_enabled = false;
     }
 
-    app.debug_procedural_tree_component.render_gui(app.vine_system);
+    app.debug_procedural_tree_component.render_gui(app.vine_system, app.procedural_tree_component);
 
     ls::render_lsystem_component_gui(app.lsystem_component);
 

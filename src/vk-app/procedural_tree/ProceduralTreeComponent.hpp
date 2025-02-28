@@ -202,6 +202,7 @@ public:
   ArrayView<const tree::TreeID> read_newly_created() const;
   ArrayView<const tree::TreeID> read_newly_destroyed() const;
   void create_tree(bool at_tform_pos);
+  void create_tree_patches();
   bool any_growing() const;
   Vec3f get_place_tform_translation() const;
   int num_trees_in_world() const {

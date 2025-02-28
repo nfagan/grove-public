@@ -1346,7 +1346,7 @@ Vec3<uint8_t> to_uint8_3(const Vec3f& c) {
   return Vec3<uint8_t>{u8(resf.x), u8(resf.y), u8(resf.z)};
 }
 
-auto create_debug_curved_plane_drawables(DebugProceduralTreeComponent&) {
+[[maybe_unused]] auto create_debug_curved_plane_drawables(DebugProceduralTreeComponent&) {
   struct Result {
     foliage::OrnamentalFoliageInstanceHandle instances;
   };
@@ -1498,8 +1498,10 @@ void DebugProceduralTreeComponent::initialize(const InitInfo&) {
 #endif
   disable_debug_branch_node_drawable_components = true;
 
+#if 0
   auto create_res = create_debug_curved_plane_drawables(*this);
   globals.debug_foliage_instances = create_res.instances;
+#endif
 }
 
 DebugProceduralTreeComponent::UpdateResult
@@ -1575,12 +1577,18 @@ DebugProceduralTreeComponent::update(const UpdateInfo& info) {
   modified = true;                       \
 }
 
-void DebugProceduralTreeComponent::render_gui(const tree::VineSystem* vine_system) {
+void DebugProceduralTreeComponent::render_gui(
+  const tree::VineSystem* vine_system, ProceduralTreeComponent& comp) {
+  //
   tree::render_debug_health_gui();
 
   ImGui::Begin("DebugProceduralTreeGUI");
 
   constexpr auto enter_flag = ImGuiInputTextFlags_EnterReturnsTrue;
+
+  if (ImGui::Button("CreateDemoTrees")) {
+    comp.create_tree_patches();
+  }
 
   if (ImGui::Button("SetGPUDrivenPreset1")) {
     set_gpu_driven_foliage_preset1(*this);

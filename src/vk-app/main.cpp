@@ -1430,6 +1430,9 @@ void update_arch_component(App& app, double real_dt, const Ray& mouse_ray) {
     num_proj_internodes = int(proj_inodes->size());
   }
 
+  const OBB3f wall_bounds = app.debug_arch_component.get_tentative_wall_bounds_at_position(
+    app.procedural_tree_component.get_place_tform_translation());
+
   update_arch_component(app.arch_component, {
     real_dt,
     &app.render_component.arch_renderer,
@@ -1440,7 +1443,7 @@ void update_arch_component(App& app, double real_dt, const Ray& mouse_ray) {
     app.render_vine_system,
     app.bounds_component.default_accel,
     &app.bounds_system,
-    app.debug_arch_component.isect_wall_obb,
+    wall_bounds,
     app.roots_radius_limiter,
     mouse_ray,
     app.mouse_state.left_mouse_clicked,
@@ -1844,6 +1847,11 @@ void update_resource_spiral_around_nodes(App& app, double real_dt) {
     update_res.just_deleted,
     real_dt
   });
+  //  @TODO: 2/28/25: creating drawables within the render tree system (function: require_drawables)
+  //  can cause extreme hitches (~30ms!) despite that we only create 1 drawable per frame - but only
+  //  when a large number of trees are created at once. I suspect these hitches occur when several
+  //  arrays (for leaves, branches, gpu buffers, etc.) are resized, but I haven't investigated this
+  //  yet. If that is the case, we could choose to reserve space at initialization.
   auto render_tree_sys_update_res = tree::update(app.render_tree_system, {
     &app.tree_system,
     &app.bounds_system,
@@ -2606,6 +2614,8 @@ void render_gui(App& app, VkCommandBuffer cmd) {
     render_season_gui(app);
     render_particle_gui(app);
     vk::imgui_render_frame(cmd);
+  } else {
+    vk::imgui_dummy_frame();
   }
 }
 

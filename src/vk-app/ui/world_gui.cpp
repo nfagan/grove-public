@@ -4,6 +4,7 @@
 #include "roots_gui.hpp"
 #include "arch_gui.hpp"
 #include "flower_gui.hpp"
+#include "../architecture/ArchComponent.hpp"
 #include "../render/font.hpp"
 #include "../render/render_gui_data.hpp"
 #include "grove/gui/font.hpp"
@@ -49,8 +50,15 @@ struct WorldGUIData {
   Stopwatch stopwatch;
 };
 
-void change_tab_mode(PendingBox& box, WorldGUIData& data, const WorldGUIContext&) {
+void on_new_tab_mode(const WorldGUIContext& ctx, TabMode mode) {
+  auto p = get_arch_component_params(&ctx.arch_component);
+  p.structure_gui_highlighted = mode == TabMode::Structure;
+  set_arch_component_params(&ctx.arch_component, p);
+}
+
+void change_tab_mode(PendingBox& box, WorldGUIData& data, const WorldGUIContext& ctx) {
   data.mode = box.to_tab_mode;
+  on_new_tab_mode(ctx, data.mode);
 }
 
 void prepare_world_gui(WorldGUIData& data, const WorldGUIContext& context) {
@@ -187,6 +195,7 @@ void evaluate_world_gui(WorldGUIData& data, const WorldGUIContext& context) {
     } else {
       data.mode = TabMode((int(data.mode) + 1) % 4);
     }
+    on_new_tab_mode(context, data.mode);
   }
 }
 

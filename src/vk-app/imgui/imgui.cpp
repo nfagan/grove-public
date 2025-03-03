@@ -111,6 +111,14 @@ void vk::imgui_new_frame() {
   ImGui::NewFrame();
 }
 
+void vk::imgui_dummy_frame() {
+  ImGui_ImplVulkan_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
+  ImGui::EndFrame();
+}
+
+
 void vk::imgui_render_frame(VkCommandBuffer cmd) {
   ImGui::Render();
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);

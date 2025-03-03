@@ -3239,7 +3239,7 @@ DebugArchComponent::InitResult DebugArchComponent::initialize(const InitInfo& in
       TRS<float>::make_translation_scale(Vec3f{16.0f, 8.0f, 16.0f}, wall_scale));
     obb_isect_collider_tform = info.transform_system->create(
       TRS<float>::make_translation_scale(Vec3f{16.0f, 8.0f, 16.0f}, collider_scale));
-    result.add_transform_editors.push_back(obb_isect_wall_tform);
+    // result.add_transform_editors.push_back(obb_isect_wall_tform);
 //    result.add_transform_editors.push_back(obb_isect_collider_tform);
 
     vk::PointBufferRenderer::DrawableParams point_params{};
@@ -3635,6 +3635,12 @@ int DebugArchComponent::gather_wall_bounds(OBB3f* dst, int max_num_dst) {
     }
   }
   return ct;
+}
+
+OBB3f DebugArchComponent::get_tentative_wall_bounds_at_position(const Vec3f& p) const {
+  auto res = isect_wall_obb;
+  res.position = p;
+  return res;
 }
 
 void DebugArchComponent::on_gui_update(const ArchGUIUpdateResult& gui_res) {

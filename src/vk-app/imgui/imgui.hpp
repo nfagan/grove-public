@@ -32,6 +32,7 @@ Result<ImGuiImpl> create_and_initialize_imgui_impl(const ImGuiImplCreateInfo& in
 void destroy_and_terminate_imgui_impl(ImGuiImpl* impl, VkDevice device);
 
 void imgui_new_frame();
+void imgui_dummy_frame();
 void imgui_render_frame(VkCommandBuffer cmd);
 bool imgui_want_capture_mouse(const ImGuiImpl* impl);
 

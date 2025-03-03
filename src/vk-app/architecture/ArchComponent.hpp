@@ -55,6 +55,7 @@ struct ArchComponentParams {
   bool extrude_from_parent;
   float extrude_theta;
   bool disable_tentative_bounds_highlight;
+  bool structure_gui_highlighted;
 };
 
 struct ArchComponentExtrudeInfo {

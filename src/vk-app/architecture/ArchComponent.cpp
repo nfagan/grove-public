@@ -102,6 +102,7 @@ struct ArchComponent {
   bounds::RadiusLimiterElementTag arch_radius_limiter_element_tag{};
 
   bool disable_tentative_bounds_highlight{};
+  bool structure_gui_highlighted{};
   bool disable_connection_to_parent{true};
   double repr_elapsed_time{};
 };
@@ -716,7 +717,7 @@ void draw_tentative_bounds(const OBB3f& bounds, float dw, const Vec3f& color) {
 void draw_tentative_bounds(
   const ArchComponent* component, const OBB3f& tentative_bounds, const Vec3f& color) {
   //
-  if (component->disable_tentative_bounds_highlight) {
+  if (!component->structure_gui_highlighted || component->disable_tentative_bounds_highlight) {
     return;
   }
 
@@ -805,6 +806,7 @@ void set_arch_component_params(ArchComponent* component, const ArchComponentPara
   component->use_collider_bounds = !params.extrude_from_parent;
   component->bounds_theta = params.extrude_theta;
   component->disable_tentative_bounds_highlight = params.disable_tentative_bounds_highlight;
+  component->structure_gui_highlighted = params.structure_gui_highlighted;
 }
 
 ArchComponentParams get_arch_component_params(const ArchComponent* component) {
@@ -812,6 +814,7 @@ ArchComponentParams get_arch_component_params(const ArchComponent* component) {
   result.extrude_from_parent = !component->use_collider_bounds;
   result.extrude_theta = component->bounds_theta;
   result.disable_tentative_bounds_highlight = component->disable_tentative_bounds_highlight;
+  result.structure_gui_highlighted = component->structure_gui_highlighted;
   return result;
 }
 

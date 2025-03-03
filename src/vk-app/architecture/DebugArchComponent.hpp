@@ -199,6 +199,7 @@ public:
   const tree::Internodes* get_projection_source_internodes() const {
     return &src_tree_internodes;
   }
+  OBB3f get_tentative_wall_bounds_at_position(const Vec3f& p) const;
 
 public:
   Optional<ArchRenderer::DrawableHandle> arch_drawable;

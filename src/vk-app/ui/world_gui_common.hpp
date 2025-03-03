@@ -12,6 +12,7 @@ class ProceduralFlowerComponent;
 struct ArchComponent;
 class DebugArchComponent;
 class KeyTrigger;
+class Camera;
 }
 
 namespace grove::gui {
@@ -44,6 +45,7 @@ struct WorldGUIContext {
   ProceduralFlowerComponent& procedural_flower_component;
   ArchComponent& arch_component;
   DebugArchComponent& db_arch_component;
+  const Camera& camera;
 };
 
 }

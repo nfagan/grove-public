@@ -50,6 +50,11 @@ public:
     float max_scale{};
   };
 
+  struct PatchParams {
+    float radius;
+    int count;
+  };
+
   struct Ornament {
     MakePetalShapeParams shape{};
     AlphaTestPetalMaterialParams alpha_test_petal_material_params{};
@@ -131,8 +136,11 @@ public:
 public:
   InitResult initialize(const InitInfo& init_info);
   UpdateResult update(const UpdateInfo& update_info);
-  void add_patch(const Vec2f& pos_xz);
+  void add_patch(const Vec2f& pos_xz, const Optional<PatchParams>& patch_params);
   void add_patch_at_cursor_position();
+  void add_patches_around_world() {
+    params.need_add_patches_around_world = true;
+  }
   void on_gui_update(const ProceduralFlowerGUI::UpdateResult& update_res);
 
 //private:
@@ -160,6 +168,7 @@ public:
     bool allow_bush{true};
     bool disable_alpha_test_ornaments{};
     bool need_add_patch_at_cursor{};
+    bool need_add_patches_around_world{};
   };
 
   using StemRenderGrowthContexts =

@@ -107,6 +107,12 @@ public:
                        const tree::Internodes& internodes,
                        const Vec3f& color);
   void set_active(DrawableHandle handle, bool active);
+  void set_disabled(bool disable) {
+    disabled = disable;
+  }
+  bool is_disabled() const {
+    return disabled;
+  }
 
   static AddResourceContext make_add_resource_context(vk::GraphicsContext& context);
 
@@ -145,6 +151,7 @@ private:
   bool initialized_program{};
   bool initialized{};
   uint32_t next_drawable_id{1};
+  bool disabled{};
 };
 
 }

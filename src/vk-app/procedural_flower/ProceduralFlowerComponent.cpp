@@ -852,6 +852,34 @@ void ProceduralFlowerComponent::update_debug_attraction_points_drawable(const Up
   }
 }
 
+namespace {
+
+void do_add_patches_around_world(ProceduralFlowerComponent& comp) {
+  constexpr int flowers_per_patch = 32;
+  constexpr int patch_dim = 6;
+  constexpr float patch_radius = 32.0f;
+
+  for (int xi = 0; xi < patch_dim; xi++) {
+    for (int yi = 0; yi < patch_dim; yi++) {
+      const float patch_space = 1.0f / float(patch_dim) * Terrain::terrain_dim * 0.5f;
+
+      Vec2f patch_ori = Terrain::terrain_dim * 0.5f * Vec2f{
+        ((float(xi) + 0.5f) / float(patch_dim) * 2.0f - 1.0f) * 0.75f,
+        ((float(yi) + 0.5f) / float(patch_dim) * 2.0f - 1.0f) * 0.75f,
+      };
+
+      patch_ori += Vec2f{urand_11f(), urand_11f()} * patch_space;
+
+      ProceduralFlowerComponent::PatchParams params{};
+      params.count = flowers_per_patch;
+      params.radius = patch_radius;
+      comp.add_patch(patch_ori, Optional<ProceduralFlowerComponent::PatchParams>(params));
+    }
+  }
+}
+
+} //  anon
+
 using UpdateResult = ProceduralFlowerComponent::UpdateResult;
 UpdateResult ProceduralFlowerComponent::update(const UpdateInfo& update_info) {
   auto profiler = GROVE_PROFILE_SCOPE_TIC_TOC("ProceduralFlowerComponent/update");
@@ -861,8 +889,13 @@ UpdateResult ProceduralFlowerComponent::update(const UpdateInfo& update_info) {
 
   if (params.need_add_patch_at_cursor) {
     Vec2f pos{update_info.cursor_tform_position.x, update_info.cursor_tform_position.z};
-    add_patch(pos);
+    add_patch(pos, NullOpt{});
     params.need_add_patch_at_cursor = false;
+  }
+
+  if (params.need_add_patches_around_world) {
+    do_add_patches_around_world(*this);
+    params.need_add_patches_around_world = false;
   }
 
   update_ornament_particles(update_info, result);
@@ -894,7 +927,9 @@ void ProceduralFlowerComponent::add_patch_at_cursor_position() {
   params.need_add_patch_at_cursor = true;
 }
 
-void ProceduralFlowerComponent::add_patch(const Vec2f& pos_xz) {
+void ProceduralFlowerComponent::add_patch(
+  const Vec2f& pos_xz, const Optional<PatchParams>& patch_p) {
+  //
   auto mat_params = make_debug_alpha_test_petal_material_params(num_alpha_test_texture_layers);
   const int num_ornaments = urandf() > 0.5f ? 3 : 1;
 //  const int num_ornaments = 2;
@@ -913,11 +948,20 @@ void ProceduralFlowerComponent::add_patch(const Vec2f& pos_xz) {
 
   auto global_off = pos_xz + params.patch_position_radius * Vec2f{urand_11f(), urand_11f()};
 
-  for (int i = 0; i < params.patch_size; i++) {
-    auto patch_off = Vec2f{urand_11f(), urand_11f()} * params.patch_radius * 0.5f;
-    auto make_stem_params = make_flower_make_stem_params(
-      global_off + patch_off, params.flower_stem_scale);
+  const float patch_r = patch_p ? patch_p.value().radius : params.patch_radius;
+  const int num_plants = patch_p ? patch_p.value().count : params.patch_size;
 
+  for (int i = 0; i < num_plants; i++) {
+    auto patch_off = Vec2f{urand_11f(), urand_11f()} * patch_r * 0.5f;
+    auto flower_p = global_off + patch_off;
+
+#if 1
+    if (flower_p.length() > Terrain::terrain_dim * 0.5f - 32.0f) {
+      continue;
+    }
+#endif
+
+    auto make_stem_params = make_flower_make_stem_params(flower_p, params.flower_stem_scale);
     auto pend = make_alpha_test_procedural_pending_plant(
       std::move(make_stem_params),
       mat_params,

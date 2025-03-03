@@ -115,6 +115,7 @@ public:
   bool any_root_nodes_radius_constrained(const bounds::RadiusLimiter* lim) const;
   void set_spectral_fraction(float f01);
   Vec3f get_attractor_point() const;
+  void set_attractor_point(const Vec3f& ap);
 
 public:
   Optional<ProceduralTreeRootsRenderer::DrawableHandle> debug_drawable;

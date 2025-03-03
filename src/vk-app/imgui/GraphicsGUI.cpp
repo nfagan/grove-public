@@ -37,10 +37,15 @@ void render_proc_tree_roots_params(const RenderComponent&,
   }
 }
 
-void render_ornamental_foliage_params(const RenderComponent&, GraphicsGUIUpdateResult& result) {
+void render_ornamental_foliage_params(const RenderComponent& comp, GraphicsGUIUpdateResult& result) {
   bool disabled = foliage::get_render_ornamental_foliage_disabled();
   if (ImGui::Checkbox("Disabled", &disabled)) {
     result.ornamental_foliage_params.disable = disabled;
+  }
+
+  bool stem_disabled = comp.procedural_flower_stem_renderer.is_disabled();
+  if (ImGui::Checkbox("StemDisabled", &stem_disabled)) {
+    result.ornamental_foliage_params.disable_stem = stem_disabled;
   }
 
   if (ImGui::Button("ToggleAlphaTest")) {

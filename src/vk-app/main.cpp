@@ -1067,7 +1067,8 @@ void update_ui(App& app) {
     app.debug_procedural_tree_roots_component,
     app.procedural_flower_component,
     *app.arch_component,
-    app.debug_arch_component
+    app.debug_arch_component,
+    app.camera,
   };
 
   gui::MenuGUIResult menu_gui_result{};
@@ -1963,7 +1964,7 @@ void update_procedural_tree_component(
   }
 
   for (auto& patch : update_res.new_ornamental_foliage_patches) {
-    app.procedural_flower_component.add_patch(patch.position);
+    app.procedural_flower_component.add_patch(patch.position, NullOpt{});
   }
 
   if (update_res.toggle_debug_attraction_points_drawable) {

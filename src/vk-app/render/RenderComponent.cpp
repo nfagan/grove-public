@@ -1050,6 +1050,10 @@ void RenderComponent::on_gui_update(const InitInfo& info, const GraphicsGUIUpdat
   if (res.ornamental_foliage_params.disable) {
     foliage::set_render_ornamental_foliage_disabled(res.ornamental_foliage_params.disable.value());
   }
+  if (res.ornamental_foliage_params.disable_stem) {
+    procedural_flower_stem_renderer.set_disabled(
+      res.ornamental_foliage_params.disable_stem.value());
+  }
   if (res.foliage_params.enable_gpu_driven_foliage_rendering) {
     foliage::set_tree_leaves_renderer_forward_rendering_enabled(
       res.foliage_params.enable_gpu_driven_foliage_rendering.value());

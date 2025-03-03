@@ -57,6 +57,7 @@ struct GraphicsGUIUpdateResult {
 
   struct OrnamentalFoliageParams {
     Optional<bool> disable;
+    Optional<bool> disable_stem;
   };
 
   struct ShadowComponentParams {

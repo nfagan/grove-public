@@ -21,6 +21,12 @@ void do_create_patch(void* context) {
   comp.add_patch_at_cursor_position();
 }
 
+void do_create_patches_around_world(void* context) {
+  auto* ctx = static_cast<WorldGUIContext*>(context);
+  auto& comp = ctx->procedural_flower_component;
+  comp.add_patches_around_world();
+}
+
 struct {
   FlowerGUIData data;
 } globals;
@@ -54,14 +60,25 @@ void gui::prepare_flower_gui(layout::Layout* layout, int container, elements::El
   layout::end_group(layout);
 
   {
-    const float create_bw = ui::font_sequence_width_ascii(text_font, "create", font_size, 4.0f);
+    const int nb = 2;
+    int buttons[nb];
+    const char* texts[nb]{"create one", "create many"};
+    const decltype(&do_create_patch) funcs[nb]{&do_create_patch, &do_create_patches_around_world};
 
     layout::begin_group(layout, row0, layout::GroupOrientation::Col, 0, 0, layout::JustifyContent::Left);
-    int create_button = prepare_button(elements, layout, {1, create_bw, create_bw}, line_h, false, do_create_patch);
+    for (int i = 0; i < nb; i++) {
+      const float bw = ui::font_sequence_width_ascii(text_font, texts[i], font_size, 4.0f);
+      buttons[i] = prepare_button(elements, layout, {1, bw, bw}, line_h, false, funcs[i]);
+      if (i + 1 < nb) {
+        layout::set_box_margin(layout, buttons[i], 0, 0, 8, 0);
+      }
+    }
     layout::end_group(layout);
 
-    draw_label(context.render_data, layout::read_box(layout, create_button), "create", text_font, font_size, Vec3f{}, 4, false);
-    draw_box(data.box_draw_list, layout, create_button, ui::make_render_quad_desc_style(Vec3f{1.0f}, 2.0f));
+    for (int i = 0; i < nb; i++) {
+      draw_label(context.render_data, layout::read_box(layout, buttons[i]), texts[i], text_font, font_size, Vec3f{}, 4, false);
+      draw_box(data.box_draw_list, layout, buttons[i], ui::make_render_quad_desc_style(Vec3f{1.0f}, 2.0f));
+    }
   }
 }
 

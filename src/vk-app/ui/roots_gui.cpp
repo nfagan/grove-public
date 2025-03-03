@@ -6,9 +6,9 @@
 #include "../procedural_tree/DebugTreeRootsComponent.hpp"
 #include "../procedural_tree/ProceduralTreeComponent.hpp"
 #include "grove/common/common.hpp"
+#include "grove/visual/Camera.hpp"
 
 GROVE_NAMESPACE_BEGIN
-
 namespace {
 
 using namespace gui;
@@ -92,6 +92,22 @@ void create_roots(void* context) {
   tree_roots_component_simple_create_roots(&roots_comp, pos, n, up);
 }
 
+void set_approach_target_down(void* context) {
+  auto* ctx = static_cast<const WorldGUIContext*>(context);
+  ctx->db_tree_roots_component.set_attractor_point(Vec3f{0.0f, -128.0f, 0.0f});
+}
+
+void set_approach_target_up(void* context) {
+  auto* ctx = static_cast<const WorldGUIContext*>(context);
+  ctx->db_tree_roots_component.set_attractor_point(Vec3f{0.0f, 128.0f, 0.0f});
+}
+
+void set_approach_target_ahead(void* context) {
+  auto* ctx = static_cast<const WorldGUIContext*>(context);
+  auto targ = ctx->camera.get_front_xz() * 32.0f + ctx->camera.get_position();
+  ctx->db_tree_roots_component.set_attractor_point(targ);
+}
+
 void choose_num_roots(int opt, void*) {
   set_num_roots_dropdown_value_index(opt);
 }
@@ -153,6 +169,7 @@ void gui::prepare_roots_gui(layout::Layout* layout, int container, elements::Ele
   rows[ri++] = prepare_row(layout, line_h, line_space);
   rows[ri++] = prepare_row(layout, line_h, line_space);
   rows[ri++] = prepare_row(layout, line_h, line_space);
+  rows[ri++] = prepare_row(layout, line_h, line_space);
   layout::end_group(layout);
 
   int dri{};
@@ -181,12 +198,48 @@ void gui::prepare_roots_gui(layout::Layout* layout, int container, elements::Ele
     draw_dropdown_labels(context.render_data, layout, prep_res.box_index_begin, prep_res.box_index_end, &dd, text_font, opt_labels, font_size, Vec3f{});
   }
   {
+    const int num_buttons = 1;
+    const char* texts[num_buttons]{"create"};
+    const decltype(&create_roots) button_cbs[num_buttons] {
+      &create_roots
+    };
+    int buttons[num_buttons];
+
     layout::begin_group(layout, rows[dri++], layout::GroupOrientation::Col, 0, 0, layout::JustifyContent::Left);
-    float w = ui::font_sequence_width_ascii(text_font, "create", font_size, 4.0f);
-    int button = prepare_button(elements, layout, {1, w, w}, line_h, false, create_roots);
+    for (int ti = 0; ti < num_buttons; ti++) {
+      float w = ui::font_sequence_width_ascii(text_font, texts[ti], font_size, 4.0f);
+      buttons[ti] = prepare_button(elements, layout, {1, w, w}, line_h, false, button_cbs[ti]);
+      if (ti + 1 < num_buttons) {
+        layout::set_box_margin(layout, buttons[ti], 0, 0, 8, 0);
+      }
+    }
     layout::end_group(layout);
-    draw_box(data.box_draw_list, layout, button, ui::make_render_quad_desc_style(Vec3f{1.0f}, 2.0f));
-    draw_label(context.render_data, layout::read_box(layout, button), "create", text_font, font_size, Vec3f{}, 4.0f, false);
+    for (int ti = 0; ti < num_buttons; ti++) {
+      draw_box(data.box_draw_list, layout, buttons[ti], ui::make_render_quad_desc_style(Vec3f{1.0f}, 2.0f));
+      draw_label(context.render_data, layout::read_box(layout, buttons[ti]), texts[ti], text_font, font_size, Vec3f{}, 4.0f, false);
+    }
+  }
+  {
+    const int num_buttons = 3;
+    const char* texts[num_buttons]{"grow down", "grow up", "grow ahead"};
+    const decltype(&create_roots) button_cbs[num_buttons] {
+      &set_approach_target_down, &set_approach_target_up, &set_approach_target_ahead
+    };
+    int buttons[num_buttons];
+
+    layout::begin_group(layout, rows[dri++], layout::GroupOrientation::Col, 0, 0, layout::JustifyContent::Left);
+    for (int ti = 0; ti < num_buttons; ti++) {
+      float w = ui::font_sequence_width_ascii(text_font, texts[ti], font_size, 4.0f);
+      buttons[ti] = prepare_button(elements, layout, {1, w, w}, line_h, false, button_cbs[ti]);
+      if (ti + 1 < num_buttons) {
+        layout::set_box_margin(layout, buttons[ti], 0, 0, 8, 0);
+      }
+    }
+    layout::end_group(layout);
+    for (int ti = 0; ti < num_buttons; ti++) {
+      draw_box(data.box_draw_list, layout, buttons[ti], ui::make_render_quad_desc_style(Vec3f{1.0f}, 2.0f));
+      draw_label(context.render_data, layout::read_box(layout, buttons[ti]), texts[ti], text_font, font_size, Vec3f{}, 4.0f, false);
+    }
   }
   {
     data.grow_by_signal.checked = context.db_tree_roots_component.params.scale_growth_rate_by_signal;

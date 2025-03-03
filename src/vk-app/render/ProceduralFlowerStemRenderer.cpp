@@ -384,7 +384,7 @@ void ProceduralFlowerStemRenderer::begin_frame(const BeginFrameInfo& info) {
 }
 
 void ProceduralFlowerStemRenderer::render(const RenderInfo& info) {
-  if (drawables.empty()) {
+  if (disabled || drawables.empty()) {
     return;
   }
 

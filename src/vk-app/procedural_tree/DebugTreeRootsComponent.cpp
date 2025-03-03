@@ -1239,6 +1239,14 @@ Vec3f DebugTreeRootsComponent::get_attractor_point() const {
   }
 }
 
+void DebugTreeRootsComponent::set_attractor_point(const Vec3f& ap) {
+  if (debug_attractor_tform) {
+    auto curr = debug_attractor_tform->get_current();
+    curr.translation = ap;
+    debug_attractor_tform->set(curr);
+  }
+}
+
 void DebugTreeRootsComponent::on_gui_update(const ProceduralTreeRootsGUIUpdateResult& res) {
   if (res.make_tree) {
     params.make_tree = res.make_tree.value();

@@ -111,8 +111,8 @@ DebugNode create_simple_fm1(const debug::DebugAudioNodesContext& context) {
   auto* scale = audio_component->get_scale();
 
   auto* param_sys = audio_component->get_parameter_system();
-  auto node_ctor = [scale, param_sys](AudioNodeStorage::NodeID node_id) {
-    return new SimpleFM1(node_id, param_sys, scale);
+  auto node_ctor = [param_sys](AudioNodeStorage::NodeID node_id) {
+    return new SimpleFM1(node_id, param_sys);
   };
 
   DebugNode node{};

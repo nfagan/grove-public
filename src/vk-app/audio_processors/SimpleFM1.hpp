@@ -7,11 +7,10 @@
 namespace grove {
 
 struct AudioParameterSystem;
-class AudioScale;
 
 class SimpleFM1 : public AudioProcessorNode {
 public:
-  SimpleFM1(uint32_t node_id, const AudioParameterSystem* param_sys, const AudioScale* scale);
+  SimpleFM1(uint32_t node_id, const AudioParameterSystem* param_sys);
   ~SimpleFM1() override = default;
   GROVE_DECLARE_AUDIO_NODE_INTERFACE()
   GROVE_DECLARE_AUDIO_NODE_PARAMETER_DESCRIPTORS()
@@ -22,7 +21,6 @@ public:
 private:
   uint32_t node_id;
   const AudioParameterSystem* param_sys;
-  const AudioScale* scale;
 
   double carrier_phase{};
   double modulator_phase{};

@@ -126,9 +126,9 @@ void create_osc_swell(PendingBox&, AudioNodeEditorData& data, const CommonContex
   };
 #else
   auto* param_sys = audio_component->get_parameter_system();
-  auto node_ctor = [scale, param_sys](AudioNodeStorage::NodeID node_id) {
+  auto node_ctor = [param_sys](AudioNodeStorage::NodeID node_id) {
 //    return new SteerableSynth1(node_id, param_sys, scale);
-    return new SimpleFM1(node_id, param_sys, scale);
+    return new SimpleFM1(node_id, param_sys);
   };
 #endif
   EditorNode node{};

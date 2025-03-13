@@ -2,7 +2,7 @@
 #include "signal.hpp"
 #include "grove/audio/AudioEventSystem.hpp"
 #include "grove/audio/AudioParameterSystem.hpp"
-#include "grove/audio/AudioScale.hpp"
+#include "grove/audio/AudioScaleSystem.hpp"
 #include "grove/common/common.hpp"
 #include "grove/math/ease.hpp"
 
@@ -14,10 +14,9 @@ constexpr int num_params = 4;
 
 } //  anon
 
-SimpleFM1::SimpleFM1(uint32_t node_id, const AudioParameterSystem* param_sys, const AudioScale* scale) :
+SimpleFM1::SimpleFM1(uint32_t node_id, const AudioParameterSystem* param_sys) :
   node_id{node_id},
-  param_sys{param_sys},
-  scale{scale} {
+  param_sys{param_sys} {
   //
   carrier_frequency.set_time_constant95(5e-3f);
 }
@@ -53,7 +52,8 @@ void SimpleFM1::process(const AudioProcessData& in, const AudioProcessData& out,
   }
 
   const double period = two_pi() / info.sample_rate;
-  const auto* tuning = scale->render_get_tuning();
+  const auto* scale_sys = scale_system::get_global_audio_scale_system();
+  const auto* tuning = scale_system::render_get_tuning(scale_sys);
   carrier_frequency.set_target(
     float(note_number_to_frequency_equal_temperament(note_num, *tuning)));
 

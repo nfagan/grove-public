@@ -6,6 +6,7 @@
 #include "../vk/vk.hpp"
 #include "../render/csm.hpp"
 #include "grove/common/Stopwatch.hpp"
+#include "grove/math/util.hpp"
 
 namespace grove {
 
@@ -162,6 +163,7 @@ public:
   void terminate();
   void render(const RenderInfo& render_info);
   void begin_frame(const BeginFrameInfo& info);
+  void set_overall_scale_fraction(float v01);
 
   uint32_t get_latest_total_num_vertices_drawn() const {
     return latest_total_num_vertices_drawn;

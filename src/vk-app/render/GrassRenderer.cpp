@@ -20,6 +20,10 @@ using namespace vk;
 
 using SetDataContext = GrassRenderer::SetDataContext;
 
+struct NewMaterialPushConstantData {
+  Vec4f overall_scale_unused;
+};
+
 struct HighLODGrassUniformData {
   Mat4f view;
   Mat4f projection;
@@ -290,6 +294,7 @@ struct {
   gfx::PipelineHandle new_high_lod_pipeline;
   gfx::PipelineHandle new_low_lod_pipeline;
   gfx::BufferHandle new_material_uniform_buffers[3];
+  NewMaterialPushConstantData new_material_push_constant_data{};
 } globals;
 
 void create_new_material_pipelines(const GrassRenderer::BeginFrameInfo& info) {
@@ -608,6 +613,10 @@ GrassRenderer::get_height_map_image(const vk::DynamicSampledImageManager& manage
   return NullOpt{};
 }
 
+void GrassRenderer::set_overall_scale_fraction(float v01) {
+  globals.new_material_push_constant_data.overall_scale_unused.x = clamp01(v01);
+}
+
 void GrassRenderer::begin_frame(const BeginFrameInfo& info) {
   const auto elapsed_t = float((stopwatch.delta() + std::chrono::seconds(30)).count());
   latest_total_num_vertices_drawn = 0;
@@ -885,6 +894,11 @@ void GrassRenderer::render_new_material_low_lod(const RenderInfo& info) {
   vkCmdBindVertexBuffers(info.cmd, 0, 2, vb_buffers, vb_offsets);
   vkCmdBindIndexBuffer(info.cmd, ind_buff, 0, VK_INDEX_TYPE_UINT16);
 
+#if 1
+  auto& pc_data = globals.new_material_push_constant_data;
+  cmd::push_constants(info.cmd, pipe.get_layout(), VK_SHADER_STAGE_VERTEX_BIT, &pc_data);
+#endif
+
   cmd::bind_graphics_descriptor_sets(
     info.cmd, pipe.get_layout(), 0, 1, &desc_set.value(), num_dynamic_offsets, dynamic_offsets);
   cmd::draw_indexed(info.cmd, &low_lod_info.draw_indexed_desc);
@@ -954,6 +968,10 @@ void GrassRenderer::render_new_material_high_lod(const RenderInfo& info, size_t 
     high_lod_buffers.instance.get().contents().buffer.handle
   };
   vkCmdBindVertexBuffers(info.cmd, 0, 2, vb_buffers, vb_offsets);
+#if 1
+  auto& pc_data = globals.new_material_push_constant_data;
+  cmd::push_constants(info.cmd, pipe.get_layout(), VK_SHADER_STAGE_VERTEX_BIT, &pc_data);
+#endif
   cmd::bind_graphics_descriptor_sets(
     info.cmd, pipe.get_layout(), 0, 1, &desc_set.value(), num_dynamic_offsets, dynamic_offsets);
   cmd::draw(info.cmd, &high_lod_info.draw_desc);

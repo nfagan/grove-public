@@ -119,6 +119,11 @@ CameraComponent::UpdateResult CameraComponent::update(const UpdateInfo& info) {
   return result;
 }
 
+float CameraComponent::get_fraction_to_high_target(const Camera& camera) const {
+  const auto p = camera.get_position();
+  return clamp01(p.y / params.high_up_height);
+}
+
 void CameraComponent::set_position_target(CameraPositionTarget targ) {
   if (targ != target) {
     prev_target = target;

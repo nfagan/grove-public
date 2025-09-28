@@ -19,6 +19,10 @@ layout (set = 0, binding = 4) uniform sampler2D wind_displacement_texture;
 layout (set = 0, binding = 6) uniform sampler2D height_map_texture;
 layout (set = 0, binding = 7) uniform sampler2D splotch_texture;
 
+layout (push_constant) uniform PushConstants {
+  vec4 overall_scale_unused;
+} push_constants;
+
 mat3 make_scale_matrix(vec3 scl, float rotation) {
   float ct = cos(rotation);
   float st = sin(rotation);
@@ -148,6 +152,8 @@ void main() {
   use_scale.x += noise_amount * 0.1;
   //  Fade out towards world edge
   use_scale *= attenuate_toward_world_edge(world_uv);
+  //  Fade out with camera height.
+  use_scale *= push_constants.overall_scale_unused.x;
 
   position.z += (noise_amount - 0.5) * 2.0 * pow(y, 0.5);
 

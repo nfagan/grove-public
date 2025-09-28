@@ -1250,6 +1250,10 @@ void update_grass_renderer(App& app, const season::Status& status) {
   auto mat_params = GrassRenderer::NewMaterialParams::from_frac_fall(
     frac_fall, params.prefer_revised_new_material_params);
   params.season_controlled_new_material_params = mat_params;
+
+  const auto frac_high = app.camera_component.get_fraction_to_high_target(app.camera);
+  app.render_component.grass_renderer.set_overall_scale_fraction(
+    app.grass_component.get_renderer_scale_fraction_from_height_fraction(frac_high));
 }
 
 void update_arch_renderer(App& app) {

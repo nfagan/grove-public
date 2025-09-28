@@ -36,6 +36,7 @@ public:
   void initialize(const InitInfo& init_info);
   void begin_frame(const BeginFrameInfo& info);
   UpdateResult update(const UpdateInfo& update_info);
+  float get_renderer_scale_fraction_from_height_fraction(float f01);
 
 private:
   Grass high_lod_grass;

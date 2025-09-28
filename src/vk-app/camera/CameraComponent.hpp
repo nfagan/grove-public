@@ -46,6 +46,7 @@ public:
 public:
   void initialize(const InitInfo& info);
   UpdateResult update(const UpdateInfo& info);
+  float get_fraction_to_high_target(const Camera& camera) const;
   void set_position_target(CameraPositionTarget target);
   void toggle_high_up_position_target();
   void toggle_below_ground_position_target();

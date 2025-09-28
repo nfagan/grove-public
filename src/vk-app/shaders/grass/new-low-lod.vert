@@ -20,6 +20,10 @@ layout (location = 0) out VS_OUT vs_out;
 #pragma include "pi.glsl"
 #pragma include "wind.glsl"
 
+layout (push_constant) uniform PushConstants {
+  vec4 overall_scale_unused;
+} push_constants;
+
 vec3 sun_light_space_position0(vec3 base_position) {
   vec4 pos = sun_light_view_projection0 * vec4(base_position, 1.0);
   return vec3(pos);
@@ -112,6 +116,8 @@ void main() {
   scale.xy *= scale_adjust;
   //  Fade out towards world edge
   scale *= attenuate_toward_world_edge(world_uv);
+  //  Fade out with camera height.
+  scale *= push_constants.overall_scale_unused.x;
 
   mat3 inv_view = transpose(mat3(view));
   p3 = inv_view * (scale * p3);

@@ -3,6 +3,7 @@
 #include "grove/common/Optional.hpp"
 #include "grove/common/DynamicArray.hpp"
 #include <unordered_map>
+#include <vector>
 
 namespace grove::glsl {
 

@@ -1,6 +1,7 @@
 #include "GrassComponent.hpp"
 #include "grove/common/common.hpp"
 #include "grove/common/logging.hpp"
+#include "grove/math/ease.hpp"
 #include "../terrain/weather.hpp"
 
 GROVE_NAMESPACE_BEGIN
@@ -83,5 +84,21 @@ GrassComponent::UpdateResult GrassComponent::update(const UpdateInfo& update_inf
   result.frac_global_color_scale = render_params.frac_global_color_scale;
   return result;
 }
+
+float GrassComponent::get_renderer_scale_fraction_from_height_fraction(float f01) {
+  const float me = 0.35f;  //  min edge
+  if (f01 < me) {
+    //  full scale when less than me to the highest point.
+    return 1.0f;
+  } else {
+    float renorm = clamp01((f01 - me) / (1.0f - me));
+    renorm = 1.0f - renorm;
+    renorm = renorm * renorm * renorm * renorm;
+    // float renorm = 1.0f - clamp01((f01 - me) / (1.0f - me));
+    // return ease::in_out_expo(renorm);
+    return renorm;
+  }
+}
+
 
 GROVE_NAMESPACE_END
